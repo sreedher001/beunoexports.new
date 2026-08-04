@@ -18,7 +18,7 @@ const navLinks = [
 const ModeSwitch = ({ className = "" }: { className?: string }) => {
   const { mode, setMode } = useCatalogMode();
   return (
-    <div className={`inline-flex rounded-full border border-border bg-muted p-0.5 text-xs font-semibold ${className}`}>
+    <div className={`inline-flex shrink-0 rounded-full border border-border bg-muted p-0.5 text-xs font-semibold ${className}`}>
       {(["retail", "wholesale"] as const).map((m) => (
         <button
           key={m}
@@ -42,9 +42,9 @@ const Header = () => {
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-card/95 backdrop-blur-md">
       <div className="container mx-auto flex items-center justify-between px-4 py-3 lg:px-8">
-        <Link to="/" className="flex items-center gap-3">
-          <img src={logo} alt="BuenoExports Logo" className="h-12 w-12 rounded-full object-contain" loading="eager" />
-          <span className="font-display text-xl font-bold text-primary">BuenoExports</span>
+        <Link to="/" className="flex items-center gap-3 min-w-0">
+          <img src={logo} alt="BuenoExports Logo" className="h-12 w-12 rounded-full object-contain shrink-0" loading="eager" />
+          <span className="font-display text-xl font-bold text-primary truncate">BuenoExports</span>
         </Link>
 
         {/* Desktop nav */}
@@ -99,8 +99,7 @@ const Header = () => {
         </div>
 
         {/* Mobile toggle */}
-        <div className="flex items-center gap-2 lg:hidden">
-          <ModeSwitch />
+        <div className="flex items-center gap-1 shrink-0 lg:hidden">
           {user && (
             <Link to="/cart" className="p-2 text-foreground"><ShoppingCart className="h-5 w-5" /></Link>
           )}
@@ -108,6 +107,11 @@ const Header = () => {
             {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
         </div>
+      </div>
+
+      {/* Mobile mode switch row */}
+      <div className="flex justify-center border-t border-border/60 py-2 lg:hidden">
+        <ModeSwitch />
       </div>
 
       {/* Mobile menu */}
