@@ -2,13 +2,15 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { ShoppingCart, Heart, Minus, Plus, ArrowLeft } from "lucide-react";
+import { wholesaleEnquiryUrl } from "@/lib/utils";
+import { ShoppingCart, Heart, Minus, Plus, ArrowLeft, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 
 type Product = {
   id: string; name: string; slug: string; description: string | null;
   price: number; mrp: number; image_url: string | null; stock: number;
   unit: string; weight: string | null; category_id: string | null;
+  catalog_type: string; moq: number | null;
 };
 
 const ProductDetail = () => {
@@ -105,15 +107,24 @@ const ProductDetail = () => {
           <div>
             <h1 className="text-2xl md:text-3xl font-bold mb-2">{product.name}</h1>
             {product.weight && <p className="text-muted-foreground mb-4">{product.weight}</p>}
-            <div className="flex items-center gap-3 mb-4">
-              <span className="text-3xl font-bold text-secondary">₹{product.price}</span>
-              {product.mrp > product.price && (
-                <>
-                  <span className="text-lg text-muted-foreground line-through">₹{product.mrp}</span>
-                  <span className="bg-accent text-accent-foreground text-sm font-bold px-2 py-0.5 rounded">{disc}% OFF</span>
-                </>
-              )}
-            </div>
+
+            {product.catalog_type === "retail" ? (
+              <div className="flex items-center gap-3 mb-4">
+                <span className="text-3xl font-bold text-secondary">₹{product.price}</span>
+                {product.mrp > product.price && (
+                  <>
+                    <span className="text-lg text-muted-foreground line-through">₹{product.mrp}</span>
+                    <span className="bg-accent text-accent-foreground text-sm font-bold px-2 py-0.5 rounded">{disc}% OFF</span>
+                  </>
+                )}
+              </div>
+            ) : (
+              <div className="mb-4">
+                <p className="text-2xl font-bold text-secondary mb-1">Contact for Bulk Price</p>
+                {product.moq && <p className="text-sm text-muted-foreground">Minimum Order Quantity: {product.moq} {product.unit}</p>}
+              </div>
+            )}
+
             <p className="text-muted-foreground mb-6">{product.description}</p>
             <p className="text-sm mb-4">
               {product.stock > 0
@@ -121,29 +132,42 @@ const ProductDetail = () => {
                 : <span className="text-destructive font-medium">Out of Stock</span>}
             </p>
 
-            <div className="flex items-center gap-3 mb-6">
-              <span className="text-sm font-medium">Qty:</span>
-              <div className="flex items-center border border-border rounded-lg">
-                <button onClick={() => setQty(Math.max(1, qty - 1))} className="px-3 py-2 hover:bg-muted"><Minus className="h-4 w-4" /></button>
-                <span className="px-4 py-2 font-semibold min-w-[3rem] text-center">{qty}</span>
-                <button onClick={() => setQty(Math.min(product.stock, qty + 1))} className="px-3 py-2 hover:bg-muted"><Plus className="h-4 w-4" /></button>
-              </div>
-            </div>
+            {product.catalog_type === "retail" ? (
+              <>
+                <div className="flex items-center gap-3 mb-6">
+                  <span className="text-sm font-medium">Qty:</span>
+                  <div className="flex items-center border border-border rounded-lg">
+                    <button onClick={() => setQty(Math.max(1, qty - 1))} className="px-3 py-2 hover:bg-muted"><Minus className="h-4 w-4" /></button>
+                    <span className="px-4 py-2 font-semibold min-w-[3rem] text-center">{qty}</span>
+                    <button onClick={() => setQty(Math.min(product.stock, qty + 1))} className="px-3 py-2 hover:bg-muted"><Plus className="h-4 w-4" /></button>
+                  </div>
+                </div>
 
-            <div className="flex flex-wrap gap-3">
-              <button onClick={addToCart} disabled={product.stock === 0}
-                className="flex-1 rounded-lg bg-primary px-6 py-3 text-sm font-bold text-primary-foreground shadow-md transition-all hover:shadow-lg active:scale-[0.97] disabled:opacity-50 flex items-center justify-center gap-2">
-                <ShoppingCart className="h-4 w-4" /> Add to Cart
-              </button>
-              <button onClick={buyNow} disabled={product.stock === 0}
-                className="flex-1 rounded-lg bg-secondary px-6 py-3 text-sm font-bold text-secondary-foreground shadow-md transition-all hover:shadow-lg active:scale-[0.97] disabled:opacity-50">
-                Buy Now
-              </button>
-              <button onClick={toggleWishlist}
-                className={`rounded-lg border px-4 py-3 transition-all active:scale-[0.97] ${inWishlist ? "bg-accent/10 border-accent text-accent" : "border-border text-muted-foreground hover:text-accent"}`}>
-                <Heart className={`h-5 w-5 ${inWishlist ? "fill-current" : ""}`} />
-              </button>
-            </div>
+                <div className="flex flex-wrap gap-3">
+                  <button onClick={addToCart} disabled={product.stock === 0}
+                    className="flex-1 rounded-lg bg-primary px-6 py-3 text-sm font-bold text-primary-foreground shadow-md transition-all hover:shadow-lg active:scale-[0.97] disabled:opacity-50 flex items-center justify-center gap-2">
+                    <ShoppingCart className="h-4 w-4" /> Add to Cart
+                  </button>
+                  <button onClick={buyNow} disabled={product.stock === 0}
+                    className="flex-1 rounded-lg bg-secondary px-6 py-3 text-sm font-bold text-secondary-foreground shadow-md transition-all hover:shadow-lg active:scale-[0.97] disabled:opacity-50">
+                    Buy Now
+                  </button>
+                  <button onClick={toggleWishlist}
+                    className={`rounded-lg border px-4 py-3 transition-all active:scale-[0.97] ${inWishlist ? "bg-accent/10 border-accent text-accent" : "border-border text-muted-foreground hover:text-accent"}`}>
+                    <Heart className={`h-5 w-5 ${inWishlist ? "fill-current" : ""}`} />
+                  </button>
+                </div>
+              </>
+            ) : (
+              <a
+                href={wholesaleEnquiryUrl(product.name, product.moq, product.unit)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full rounded-lg bg-[#25D366] px-6 py-3 text-sm font-bold text-white shadow-md transition-all hover:shadow-lg active:scale-[0.97] flex items-center justify-center gap-2"
+              >
+                <MessageCircle className="h-4 w-4" /> Enquire on WhatsApp
+              </a>
+            )}
           </div>
         </div>
       </div>

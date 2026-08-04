@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCatalogMode } from "@/contexts/CatalogModeContext";
 import logo from "@/assets/logo.png";
 import { Menu, X, ShoppingCart, Heart, User, LogOut, Shield } from "lucide-react";
 
@@ -13,6 +14,25 @@ const navLinks = [
   { label: "Blog", to: "/blog" },
   { label: "Contact", to: "/contact" },
 ];
+
+const ModeSwitch = ({ className = "" }: { className?: string }) => {
+  const { mode, setMode } = useCatalogMode();
+  return (
+    <div className={`inline-flex rounded-full border border-border bg-muted p-0.5 text-xs font-semibold ${className}`}>
+      {(["retail", "wholesale"] as const).map((m) => (
+        <button
+          key={m}
+          onClick={() => setMode(m)}
+          className={`rounded-full px-3 py-1.5 capitalize transition-colors ${
+            mode === m ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          {m}
+        </button>
+      ))}
+    </div>
+  );
+};
 
 const Header = () => {
   const [open, setOpen] = useState(false);
@@ -42,7 +62,8 @@ const Header = () => {
           ))}
         </nav>
 
-        <div className="hidden lg:flex items-center gap-2">
+        <div className="hidden lg:flex items-center gap-3">
+          <ModeSwitch />
           {user && (
             <>
               <Link to="/wishlist" className="relative p-2 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground">
@@ -79,6 +100,7 @@ const Header = () => {
 
         {/* Mobile toggle */}
         <div className="flex items-center gap-2 lg:hidden">
+          <ModeSwitch />
           {user && (
             <Link to="/cart" className="p-2 text-foreground"><ShoppingCart className="h-5 w-5" /></Link>
           )}

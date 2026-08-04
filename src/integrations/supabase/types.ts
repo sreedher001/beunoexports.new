@@ -175,11 +175,13 @@ export type Database = {
       products: {
         Row: {
           category_id: string | null
+          catalog_type: string
           created_at: string
           description: string | null
           id: string
           image_url: string | null
           is_active: boolean
+          moq: number | null
           mrp: number
           name: string
           price: number
@@ -191,11 +193,13 @@ export type Database = {
         }
         Insert: {
           category_id?: string | null
+          catalog_type?: string
           created_at?: string
           description?: string | null
           id?: string
           image_url?: string | null
           is_active?: boolean
+          moq?: number | null
           mrp?: number
           name: string
           price?: number
@@ -207,11 +211,13 @@ export type Database = {
         }
         Update: {
           category_id?: string | null
+          catalog_type?: string
           created_at?: string
           description?: string | null
           id?: string
           image_url?: string | null
           is_active?: boolean
+          moq?: number | null
           mrp?: number
           name?: string
           price?: number

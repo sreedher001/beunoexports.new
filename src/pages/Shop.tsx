@@ -2,7 +2,9 @@ import { useState, useEffect, useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Search, Heart, ShoppingCart, Filter } from "lucide-react";
+import { useCatalogMode } from "@/contexts/CatalogModeContext";
+import { wholesaleEnquiryUrl } from "@/lib/utils";
+import { Search, Heart, ShoppingCart, Filter, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import ScrollReveal from "@/components/ScrollReveal";
 
@@ -19,12 +21,15 @@ type Product = {
   weight: string | null;
   category_id: string | null;
   is_active: boolean;
+  catalog_type: string;
+  moq: number | null;
 };
 
 type Category = { id: string; name: string; slug: string };
 
 const Shop = () => {
   const { user } = useAuth();
+  const { mode } = useCatalogMode();
   const [searchParams] = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -71,12 +76,13 @@ const Shop = () => {
   const filtered = useMemo(() => {
     const catId = categoryIdBySlug[selectedCat] || selectedCat;
     return products.filter((p) => {
+      const matchMode = p.catalog_type === mode;
       const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
         p.description?.toLowerCase().includes(search.toLowerCase());
       const matchCat = selectedCat === "all" || p.category_id === catId;
-      return matchSearch && matchCat;
+      return matchMode && matchSearch && matchCat;
     });
-  }, [products, search, selectedCat, categoryIdBySlug]);
+  }, [products, search, selectedCat, categoryIdBySlug, mode]);
 
   const addToCart = async (productId: string) => {
     if (!user) { toast.error("Please login to add to cart"); return; }
@@ -114,9 +120,13 @@ const Shop = () => {
     <>
       <section className="spice-gradient text-primary-foreground">
         <div className="container mx-auto px-4 py-16 md:py-20 lg:px-8 text-center">
-          <h1 className="mb-4 animate-fade-up text-3xl md:text-4xl" style={{ lineHeight: 1.1 }}>Shop Premium Spices</h1>
+          <h1 className="mb-4 animate-fade-up text-3xl md:text-4xl" style={{ lineHeight: 1.1 }}>
+            {mode === "wholesale" ? "Wholesale & Bulk Spices" : "Shop Premium Spices"}
+          </h1>
           <p className="opacity-80 text-lg max-w-2xl mx-auto animate-fade-up" style={{ animationDelay: "100ms" }}>
-            Fresh, authentic Indian spices delivered across India
+            {mode === "wholesale"
+              ? "Bulk quantities for exporters, retailers & food businesses. Enquire for pricing."
+              : "Fresh, authentic Indian spices delivered across India"}
           </p>
         </div>
       </section>
@@ -177,7 +187,7 @@ const Shop = () => {
                           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                           loading="lazy"
                         />
-                        {discount(p.mrp, p.price) > 0 && (
+                        {mode === "retail" && discount(p.mrp, p.price) > 0 && (
                           <span className="absolute top-2 left-2 bg-accent text-accent-foreground text-xs font-bold px-2 py-1 rounded">
                             {discount(p.mrp, p.price)}% OFF
                           </span>
@@ -189,30 +199,47 @@ const Shop = () => {
                         <h3 className="font-semibold text-sm mb-1 line-clamp-2 hover:text-secondary transition-colors">{p.name}</h3>
                       </Link>
                       {p.weight && <p className="text-xs text-muted-foreground mb-2">{p.weight}</p>}
-                      <div className="flex items-center gap-2 mb-3">
-                        <span className="text-lg font-bold">₹{p.price}</span>
-                        {p.mrp > p.price && (
-                          <span className="text-sm text-muted-foreground line-through">₹{p.mrp}</span>
-                        )}
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => addToCart(p.id)}
-                          className="flex-1 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-all hover:shadow-md active:scale-[0.97] flex items-center justify-center gap-1"
-                        >
-                          <ShoppingCart className="h-3.5 w-3.5" /> Add to Cart
-                        </button>
-                        <button
-                          onClick={() => toggleWishlist(p.id)}
-                          className={`rounded-lg border px-3 py-2 transition-all active:scale-[0.97] ${
-                            wishlistIds.has(p.id)
-                              ? "bg-accent/10 border-accent text-accent"
-                              : "border-border text-muted-foreground hover:text-accent"
-                          }`}
-                        >
-                          <Heart className={`h-4 w-4 ${wishlistIds.has(p.id) ? "fill-current" : ""}`} />
-                        </button>
-                      </div>
+                      {mode === "retail" ? (
+                        <>
+                          <div className="flex items-center gap-2 mb-3">
+                            <span className="text-lg font-bold">₹{p.price}</span>
+                            {p.mrp > p.price && (
+                              <span className="text-sm text-muted-foreground line-through">₹{p.mrp}</span>
+                            )}
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => addToCart(p.id)}
+                              className="flex-1 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-all hover:shadow-md active:scale-[0.97] flex items-center justify-center gap-1"
+                            >
+                              <ShoppingCart className="h-3.5 w-3.5" /> Add to Cart
+                            </button>
+                            <button
+                              onClick={() => toggleWishlist(p.id)}
+                              className={`rounded-lg border px-3 py-2 transition-all active:scale-[0.97] ${
+                                wishlistIds.has(p.id)
+                                  ? "bg-accent/10 border-accent text-accent"
+                                  : "border-border text-muted-foreground hover:text-accent"
+                              }`}
+                            >
+                              <Heart className={`h-4 w-4 ${wishlistIds.has(p.id) ? "fill-current" : ""}`} />
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-sm font-semibold text-secondary mb-1">Contact for Bulk Price</p>
+                          {p.moq && <p className="text-xs text-muted-foreground mb-3">MOQ: {p.moq} {p.unit}</p>}
+                          <a
+                            href={wholesaleEnquiryUrl(p.name, p.moq, p.unit)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-full rounded-lg bg-[#25D366] px-3 py-2 text-xs font-semibold text-white transition-all hover:shadow-md active:scale-[0.97] flex items-center justify-center gap-1.5"
+                          >
+                            <MessageCircle className="h-3.5 w-3.5" /> Enquire on WhatsApp
+                          </a>
+                        </>
+                      )}
                     </div>
                   </div>
                 </ScrollReveal>

@@ -7,12 +7,14 @@ type Product = {
   id: string; name: string; slug: string; description: string | null;
   price: number; mrp: number; image_url: string | null; stock: number;
   unit: string; weight: string | null; category_id: string | null; is_active: boolean;
+  catalog_type: string; moq: number | null;
 };
 
 type Category = { id: string; name: string; slug: string };
 
 const emptyForm = {
   name: "", slug: "", description: "", price: "", mrp: "", stock: "", unit: "kg", weight: "", category_id: "", image_url: "", is_active: true,
+  catalog_type: "retail", moq: "",
 };
 
 const AdminProducts = () => {
@@ -67,6 +69,8 @@ const AdminProducts = () => {
       category_id: form.category_id || null,
       image_url: form.image_url || null,
       is_active: form.is_active,
+      catalog_type: form.catalog_type,
+      moq: form.moq ? Number(form.moq) : null,
     };
 
     if (editing) {
@@ -90,6 +94,7 @@ const AdminProducts = () => {
       price: String(p.price), mrp: String(p.mrp), stock: String(p.stock),
       unit: p.unit, weight: p.weight || "", category_id: p.category_id || "",
       image_url: p.image_url || "", is_active: p.is_active,
+      catalog_type: p.catalog_type, moq: p.moq ? String(p.moq) : "",
     });
     setEditing(p.id);
     setShowForm(true);
@@ -164,6 +169,21 @@ const AdminProducts = () => {
                 {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Catalog</label>
+              <select value={form.catalog_type} onChange={(e) => setForm({ ...form, catalog_type: e.target.value })}
+                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary">
+                <option value="retail">Retail</option>
+                <option value="wholesale">Wholesale</option>
+              </select>
+            </div>
+            {form.catalog_type === "wholesale" && (
+              <div>
+                <label className="block text-sm font-medium mb-1">MOQ (Minimum Order Qty)</label>
+                <input type="number" value={form.moq} onChange={(e) => setForm({ ...form, moq: e.target.value })} placeholder="e.g. 50"
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
+              </div>
+            )}
             <div className="sm:col-span-2">
               <label className="block text-sm font-medium mb-1">Description</label>
               <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3}
@@ -194,6 +214,7 @@ const AdminProducts = () => {
             <thead className="border-b border-border bg-muted/50">
               <tr>
                 <th className="px-4 py-3 text-left font-medium">Product</th>
+                <th className="px-4 py-3 text-left font-medium">Catalog</th>
                 <th className="px-4 py-3 text-left font-medium">Price</th>
                 <th className="px-4 py-3 text-left font-medium">Stock</th>
                 <th className="px-4 py-3 text-left font-medium">Status</th>
@@ -213,6 +234,12 @@ const AdminProducts = () => {
                     </div>
                   </td>
                   <td className="px-4 py-3">
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded capitalize ${p.catalog_type === "wholesale" ? "bg-purple-100 text-purple-700" : "bg-blue-100 text-blue-700"}`}>
+                      {p.catalog_type}
+                    </span>
+                    {p.catalog_type === "wholesale" && p.moq && <p className="text-xs text-muted-foreground mt-1">MOQ: {p.moq}</p>}
+                  </td>
+                  <td className="px-4 py-3">
                     <p className="font-semibold">₹{p.price}</p>
                     {p.mrp > p.price && <p className="text-xs text-muted-foreground line-through">₹{p.mrp}</p>}
                   </td>
@@ -228,7 +255,7 @@ const AdminProducts = () => {
                   </td>
                 </tr>
               ))}
-              {products.length === 0 && <tr><td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">No products yet</td></tr>}
+              {products.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">No products yet</td></tr>}
             </tbody>
           </table>
         </div>

@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { CatalogModeProvider } from "@/contexts/CatalogModeContext";
 import Layout from "@/components/Layout";
 import AdminLayout from "@/components/AdminLayout";
 import Index from "./pages/Index";
@@ -37,6 +38,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
+        <CatalogModeProvider>
           <Routes>
             {/* Admin routes - no Layout wrapper */}
             <Route path="/admin" element={<AdminLayout><AdminDashboard /></AdminLayout>} />
@@ -63,6 +65,7 @@ const App = () => (
             <Route path="/contact" element={<Layout><Contact /></Layout>} />
             <Route path="*" element={<Layout><NotFound /></Layout>} />
           </Routes>
+        </CatalogModeProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

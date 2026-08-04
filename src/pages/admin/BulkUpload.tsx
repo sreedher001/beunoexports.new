@@ -15,8 +15,8 @@ const BulkUpload = () => {
   }, []);
 
   const downloadTemplate = () => {
-    const headers = "name,description,price,mrp,stock,unit,weight,category_slug,image_url";
-    const example = "Premium Turmeric Powder,High curcumin content turmeric,250,299,100,kg,500g,turmeric,";
+    const headers = "name,description,price,mrp,stock,unit,weight,category_slug,image_url,catalog_type,moq";
+    const example = "Premium Turmeric Powder,High curcumin content turmeric,250,299,100,kg,500g,turmeric,,retail,";
     const csv = headers + "\n" + example;
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -62,6 +62,8 @@ const BulkUpload = () => {
         category_id: cat?.id || null,
         image_url: row.image_url || null,
         is_active: true,
+        catalog_type: row.catalog_type === "wholesale" ? "wholesale" : "retail",
+        moq: row.moq ? Number(row.moq) || null : null,
       });
 
       if (error) errors.push(`Row ${i + 1}: ${error.message}`);

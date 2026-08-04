@@ -1,13 +1,15 @@
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useCatalogMode } from "@/contexts/CatalogModeContext";
+import { wholesaleEnquiryUrl } from "@/lib/utils";
 import ScrollReveal from "@/components/ScrollReveal";
 import heroImg from "@/assets/hero-spices.jpg";
-import { ShieldCheck, Globe, Truck, Leaf, Star, Award, ShoppingBag } from "lucide-react";
+import { ShieldCheck, Globe, Truck, Leaf, Star, Award, ShoppingBag, MessageCircle } from "lucide-react";
 
 type Product = {
   id: string; name: string; slug: string; price: number; mrp: number;
-  image_url: string | null; weight: string | null;
+  image_url: string | null; weight: string | null; unit: string; moq: number | null;
 };
 
 type Category = { id: string; name: string; slug: string };
@@ -26,15 +28,17 @@ const testimonials = [
 ];
 
 const Index = () => {
+  const { mode } = useCatalogMode();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
 
   useEffect(() => {
-    supabase.from("products").select("id,name,slug,price,mrp,image_url,weight").eq("is_active", true).limit(8)
+    supabase.from("products").select("id,name,slug,price,mrp,image_url,weight,unit,moq")
+      .eq("is_active", true).eq("catalog_type", mode).limit(8)
       .then(({ data }) => setProducts(data || []));
     supabase.from("categories").select("*").order("name")
       .then(({ data }) => setCategories(data || []));
-  }, []);
+  }, [mode]);
 
   const disc = (mrp: number, price: number) => mrp > price ? Math.round(((mrp - price) / mrp) * 100) : 0;
 
@@ -99,25 +103,44 @@ const Index = () => {
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
               {products.map((p) => (
                 <ScrollReveal key={p.id}>
-                  <Link to={`/product/${p.slug}`} className="group block rounded-xl border border-border bg-card shadow-sm overflow-hidden transition-shadow hover:shadow-lg">
-                    <div className="aspect-square overflow-hidden relative">
-                      <img src={p.image_url || "/placeholder.svg"} alt={p.name}
-                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
-                      {disc(p.mrp, p.price) > 0 && (
-                        <span className="absolute top-2 left-2 bg-accent text-accent-foreground text-xs font-bold px-2 py-1 rounded">
-                          {disc(p.mrp, p.price)}% OFF
-                        </span>
+                  <div className="group rounded-xl border border-border bg-card shadow-sm overflow-hidden transition-shadow hover:shadow-lg">
+                    <Link to={`/product/${p.slug}`} className="block">
+                      <div className="aspect-square overflow-hidden relative">
+                        <img src={p.image_url || "/placeholder.svg"} alt={p.name}
+                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
+                        {mode === "retail" && disc(p.mrp, p.price) > 0 && (
+                          <span className="absolute top-2 left-2 bg-accent text-accent-foreground text-xs font-bold px-2 py-1 rounded">
+                            {disc(p.mrp, p.price)}% OFF
+                          </span>
+                        )}
+                      </div>
+                      <div className="p-4 pb-0">
+                        <h3 className="font-semibold text-sm mb-1">{p.name}</h3>
+                        {p.weight && <p className="text-xs text-muted-foreground mb-2">{p.weight}</p>}
+                      </div>
+                    </Link>
+                    <div className="p-4 pt-2">
+                      {mode === "retail" ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg font-bold">₹{p.price}</span>
+                          {p.mrp > p.price && <span className="text-sm text-muted-foreground line-through">₹{p.mrp}</span>}
+                        </div>
+                      ) : (
+                        <>
+                          <p className="text-sm font-semibold text-secondary mb-1">Contact for Bulk Price</p>
+                          {p.moq && <p className="text-xs text-muted-foreground mb-3">MOQ: {p.moq} {p.unit}</p>}
+                          <a
+                            href={wholesaleEnquiryUrl(p.name, p.moq, p.unit)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-full rounded-lg bg-[#25D366] px-3 py-2 text-xs font-semibold text-white transition-all hover:shadow-md active:scale-[0.97] flex items-center justify-center gap-1.5"
+                          >
+                            <MessageCircle className="h-3.5 w-3.5" /> Enquire on WhatsApp
+                          </a>
+                        </>
                       )}
                     </div>
-                    <div className="p-4">
-                      <h3 className="font-semibold text-sm mb-1">{p.name}</h3>
-                      {p.weight && <p className="text-xs text-muted-foreground mb-2">{p.weight}</p>}
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg font-bold">₹{p.price}</span>
-                        {p.mrp > p.price && <span className="text-sm text-muted-foreground line-through">₹{p.mrp}</span>}
-                      </div>
-                    </div>
-                  </Link>
+                  </div>
                 </ScrollReveal>
               ))}
             </div>
