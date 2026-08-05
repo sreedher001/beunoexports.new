@@ -20,6 +20,7 @@ import Checkout from "./pages/Checkout";
 import OrderConfirmation from "./pages/OrderConfirmation";
 import MyOrders from "./pages/MyOrders";
 import Auth from "./pages/Auth";
+import ResetPassword from "./pages/ResetPassword";
 import Blog from "./pages/Blog";
 import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
@@ -60,6 +61,7 @@ const App = () => (
             <Route path="/order-confirmation/:orderId" element={<Layout><OrderConfirmation /></Layout>} />
             <Route path="/my-orders" element={<Layout><MyOrders /></Layout>} />
             <Route path="/auth" element={<Layout><Auth /></Layout>} />
+            <Route path="/reset-password" element={<Layout><ResetPassword /></Layout>} />
             <Route path="/about" element={<Layout><About /></Layout>} />
             <Route path="/blog" element={<Layout><Blog /></Layout>} />
             <Route path="/contact" element={<Layout><Contact /></Layout>} />
