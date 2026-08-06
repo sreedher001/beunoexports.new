@@ -31,6 +31,9 @@ const OrderConfirmation = () => {
             <p className="text-sm"><strong>Name:</strong> {order.full_name}</p>
             <p className="text-sm"><strong>Phone:</strong> {order.phone}</p>
             <p className="text-sm"><strong>Address:</strong> {order.address}, {order.city}, {order.state} - {order.pincode}</p>
+            {order.coupon_code && (
+              <p className="text-sm"><strong>Coupon:</strong> {order.coupon_code} (-₹{order.discount_amount})</p>
+            )}
             <p className="text-sm"><strong>Total:</strong> ₹{order.total_amount}</p>
           </div>
 

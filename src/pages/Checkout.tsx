@@ -40,6 +40,10 @@ const Checkout = () => {
   const [form, setForm] = useState({
     full_name: "", phone: "", email: "", address: "", city: "", state: "", pincode: "", notes: "",
   });
+  const [couponInput, setCouponInput] = useState("");
+  const [couponApplying, setCouponApplying] = useState(false);
+  const [couponError, setCouponError] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number } | null>(null);
 
   useEffect(() => {
     if (!user) { navigate("/auth"); return; }
@@ -63,7 +67,29 @@ const Checkout = () => {
   }, [user, navigate]);
 
   const linePrice = (item: CartItemWithProduct) => item.product_variants?.price ?? item.products.price;
-  const total = cartItems.reduce((sum, i) => sum + linePrice(i) * i.quantity, 0);
+  const subtotal = cartItems.reduce((sum, i) => sum + linePrice(i) * i.quantity, 0);
+  const discount = appliedCoupon?.discount ?? 0;
+  const total = Math.max(0, subtotal - discount);
+
+  const applyCoupon = async () => {
+    const code = couponInput.trim();
+    if (!code) return;
+    setCouponApplying(true);
+    setCouponError("");
+    const { data, error } = await supabase.rpc("validate_coupon", { _code: code, _order_amount: subtotal });
+    setCouponApplying(false);
+    const result = data?.[0];
+    if (error || !result) { setCouponError("Failed to check coupon"); return; }
+    if (!result.valid) { setCouponError(result.message); setAppliedCoupon(null); return; }
+    setAppliedCoupon({ code, discount: result.discount_amount });
+    toast.success(result.message);
+  };
+
+  const removeCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponInput("");
+    setCouponError("");
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,6 +116,8 @@ const Checkout = () => {
       pincode: form.pincode,
       total_amount: total,
       notes: form.notes || null,
+      coupon_code: appliedCoupon?.code ?? null,
+      discount_amount: discount,
     }).select().single();
 
     if (orderError || !order) {
@@ -112,6 +140,8 @@ const Checkout = () => {
 
     // Clear cart
     await supabase.from("cart_items").delete().eq("user_id", user!.id);
+
+    if (appliedCoupon) await supabase.rpc("redeem_coupon", { _code: appliedCoupon.code });
 
     // Google Sheets integration will be added later
 
@@ -189,8 +219,32 @@ const Checkout = () => {
                     </div>
                   ))}
                 </div>
+                <div className="border-t border-border pt-3 mb-3">
+                  {appliedCoupon ? (
+                    <div className="flex items-center justify-between rounded-lg bg-green-50 px-3 py-2 text-sm">
+                      <span className="text-green-700 font-medium">"{appliedCoupon.code}" applied</span>
+                      <button type="button" onClick={removeCoupon} className="text-xs text-muted-foreground hover:text-destructive underline">Remove</button>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="flex gap-2">
+                        <input value={couponInput} onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                          placeholder="Coupon code"
+                          className="flex-1 rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
+                        <button type="button" onClick={applyCoupon} disabled={couponApplying || !couponInput.trim()}
+                          className="rounded-lg border border-border px-4 py-2 text-sm font-semibold hover:bg-muted disabled:opacity-50">
+                          {couponApplying ? "..." : "Apply"}
+                        </button>
+                      </div>
+                      {couponError && <p className="text-xs text-destructive mt-1">{couponError}</p>}
+                    </div>
+                  )}
+                </div>
                 <div className="border-t border-border pt-3 space-y-2 text-sm">
-                  <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>₹{total}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>₹{subtotal}</span></div>
+                  {discount > 0 && (
+                    <div className="flex justify-between text-green-600"><span>Discount</span><span>-₹{discount}</span></div>
+                  )}
                   <div className="flex justify-between"><span className="text-muted-foreground">Delivery</span><span className="text-green-600">Free</span></div>
                   <div className="border-t pt-2 flex justify-between font-bold text-lg"><span>Total</span><span>₹{total}</span></div>
                 </div>

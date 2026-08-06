@@ -135,7 +135,9 @@ export type Database = {
         Row: {
           address: string
           city: string
+          coupon_code: string | null
           created_at: string
+          discount_amount: number
           email: string
           full_name: string
           id: string
@@ -152,7 +154,9 @@ export type Database = {
         Insert: {
           address: string
           city: string
+          coupon_code?: string | null
           created_at?: string
+          discount_amount?: number
           email: string
           full_name: string
           id?: string
@@ -169,7 +173,9 @@ export type Database = {
         Update: {
           address?: string
           city?: string
+          coupon_code?: string | null
           created_at?: string
+          discount_amount?: number
           email?: string
           full_name?: string
           id?: string
@@ -182,6 +188,48 @@ export type Database = {
           total_amount?: number
           updated_at?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      coupons: {
+        Row: {
+          code: string
+          created_at: string
+          discount_type: string
+          discount_value: number
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          max_discount: number | null
+          min_order_amount: number
+          times_used: number
+          usage_limit: number | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          discount_type?: string
+          discount_value: number
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_discount?: number | null
+          min_order_amount?: number
+          times_used?: number
+          usage_limit?: number | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          discount_type?: string
+          discount_value?: number
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_discount?: number | null
+          min_order_amount?: number
+          times_used?: number
+          usage_limit?: number | null
         }
         Relationships: []
       }
@@ -394,6 +442,23 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      validate_coupon: {
+        Args: {
+          _code: string
+          _order_amount: number
+        }
+        Returns: {
+          valid: boolean
+          discount_amount: number
+          message: string
+        }[]
+      }
+      redeem_coupon: {
+        Args: {
+          _code: string
+        }
+        Returns: undefined
       }
     }
     Enums: {

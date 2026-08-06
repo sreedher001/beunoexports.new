@@ -1,13 +1,14 @@
 import { ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { LayoutDashboard, Package, ShoppingCart, Users, Upload, ArrowLeft } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, Users, Upload, Tag, ArrowLeft } from "lucide-react";
 
 const adminLinks = [
   { label: "Dashboard", to: "/admin", icon: LayoutDashboard },
   { label: "Products", to: "/admin/products", icon: Package },
   { label: "Orders", to: "/admin/orders", icon: ShoppingCart },
   { label: "Users", to: "/admin/users", icon: Users },
+  { label: "Coupons", to: "/admin/coupons", icon: Tag },
   { label: "Bulk Upload", to: "/admin/bulk-upload", icon: Upload },
 ];
 

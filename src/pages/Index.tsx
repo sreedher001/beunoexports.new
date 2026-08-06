@@ -1,15 +1,17 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { useCatalogMode } from "@/contexts/CatalogModeContext";
 import { wholesaleEnquiryUrl } from "@/lib/utils";
 import ScrollReveal from "@/components/ScrollReveal";
 import heroImg from "@/assets/hero-spices.jpg";
-import { ShieldCheck, Globe, Truck, Leaf, Star, Award, ShoppingBag, MessageCircle } from "lucide-react";
+import { ShieldCheck, Globe, Truck, Leaf, Star, Award, ShoppingBag, ShoppingCart, Heart, MessageCircle } from "lucide-react";
+import { toast } from "sonner";
 
 type Product = {
   id: string; name: string; slug: string; price: number; mrp: number;
-  image_url: string | null; weight: string | null; unit: string; moq: number | null;
+  image_url: string | null; weight: string | null; unit: string; moq: number | null; stock: number;
 };
 
 type Category = { id: string; name: string; slug: string };
@@ -28,13 +30,16 @@ const testimonials = [
 ];
 
 const Index = () => {
+  const { user } = useAuth();
   const { mode } = useCatalogMode();
+  const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [variantInfo, setVariantInfo] = useState<Record<string, { minPrice: number; minMrp: number }>>({});
+  const [wishlistIds, setWishlistIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    supabase.from("products").select("id,name,slug,price,mrp,image_url,weight,unit,moq")
+    supabase.from("products").select("id,name,slug,price,mrp,image_url,weight,unit,moq,stock")
       .eq("is_active", true).eq("catalog_type", mode).limit(8)
       .then(async ({ data }) => {
         setProducts(data || []);
@@ -52,7 +57,53 @@ const Index = () => {
       .then(({ data }) => setCategories(data || []));
   }, [mode]);
 
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("wishlist_items").select("product_id").eq("user_id", user.id)
+      .then(({ data }) => setWishlistIds(new Set(data?.map((w) => w.product_id) || [])));
+  }, [user]);
+
   const disc = (mrp: number, price: number) => mrp > price ? Math.round(((mrp - price) / mrp) * 100) : 0;
+
+  const addToCart = async (product: Product) => {
+    if (!user) { toast.error("Please login to add to cart"); return; }
+    const { data: existing } = await supabase.from("cart_items").select("id, quantity")
+      .eq("user_id", user.id).eq("product_id", product.id).is("variant_id", null).maybeSingle();
+
+    if (existing) {
+      const nextQty = Math.min(existing.quantity + 1, product.stock);
+      await supabase.from("cart_items").update({ quantity: nextQty }).eq("id", existing.id);
+    } else {
+      await supabase.from("cart_items").insert({ user_id: user.id, product_id: product.id, quantity: 1 });
+    }
+    toast.success("Added to cart!");
+  };
+
+  const buyNow = async (product: Product) => {
+    if (!user) { toast.error("Please login to buy"); return; }
+    const { data: existing } = await supabase.from("cart_items").select("id")
+      .eq("user_id", user.id).eq("product_id", product.id).is("variant_id", null).maybeSingle();
+
+    if (existing) {
+      await supabase.from("cart_items").update({ quantity: 1 }).eq("id", existing.id);
+    } else {
+      await supabase.from("cart_items").insert({ user_id: user.id, product_id: product.id, quantity: 1 });
+    }
+    navigate("/checkout");
+  };
+
+  const toggleWishlist = async (productId: string) => {
+    if (!user) { toast.error("Please login to use wishlist"); return; }
+    if (wishlistIds.has(productId)) {
+      await supabase.from("wishlist_items").delete().eq("user_id", user.id).eq("product_id", productId);
+      setWishlistIds((prev) => { const n = new Set(prev); n.delete(productId); return n; });
+      toast.success("Removed from wishlist");
+    } else {
+      await supabase.from("wishlist_items").insert({ user_id: user.id, product_id: productId });
+      setWishlistIds((prev) => new Set(prev).add(productId));
+      toast.success("Added to wishlist!");
+    }
+  };
 
   return (
     <>
@@ -137,11 +188,36 @@ const Index = () => {
                     </Link>
                     <div className="p-4 pt-2">
                       {mode === "retail" ? (
-                        <div className="flex items-center gap-2">
-                          {variant && <span className="text-xs text-muted-foreground">From</span>}
-                          <span className="text-lg font-bold">₹{displayPrice}</span>
-                          {displayMrp > displayPrice && <span className="text-sm text-muted-foreground line-through">₹{displayMrp}</span>}
-                        </div>
+                        <>
+                          <div className="flex items-center gap-2 mb-3">
+                            {variant && <span className="text-xs text-muted-foreground">From</span>}
+                            <span className="text-lg font-bold">₹{displayPrice}</span>
+                            {displayMrp > displayPrice && <span className="text-sm text-muted-foreground line-through">₹{displayMrp}</span>}
+                          </div>
+                          {variant ? (
+                            <Link to={`/product/${p.slug}`}
+                              className="w-full rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-all hover:shadow-md active:scale-[0.97] flex items-center justify-center gap-1">
+                              View Options
+                            </Link>
+                          ) : (
+                            <div className="flex gap-2">
+                              <button onClick={() => addToCart(p)} disabled={p.stock === 0}
+                                className="flex-1 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-all hover:shadow-md active:scale-[0.97] flex items-center justify-center gap-1 disabled:opacity-50">
+                                <ShoppingCart className="h-3.5 w-3.5" /> Add
+                              </button>
+                              <button onClick={() => buyNow(p)} disabled={p.stock === 0}
+                                className="flex-1 rounded-lg bg-secondary px-3 py-2 text-xs font-semibold text-secondary-foreground transition-all hover:shadow-md active:scale-[0.97] disabled:opacity-50">
+                                Buy Now
+                              </button>
+                              <button onClick={() => toggleWishlist(p.id)}
+                                className={`rounded-lg border px-3 py-2 transition-all active:scale-[0.97] ${
+                                  wishlistIds.has(p.id) ? "bg-accent/10 border-accent text-accent" : "border-border text-muted-foreground hover:text-accent"
+                                }`}>
+                                <Heart className={`h-4 w-4 ${wishlistIds.has(p.id) ? "fill-current" : ""}`} />
+                              </button>
+                            </div>
+                          )}
+                        </>
                       ) : (
                         <>
                           <p className="text-sm font-semibold text-secondary mb-1">Contact for Bulk Price</p>

@@ -85,6 +85,9 @@ const AdminOrders = () => {
               <p><strong>Email:</strong> {selectedOrder.email}</p>
               <p><strong>Address:</strong> {selectedOrder.address}, {selectedOrder.city}, {selectedOrder.state} - {selectedOrder.pincode}</p>
               {selectedOrder.notes && <p><strong>Notes:</strong> {selectedOrder.notes}</p>}
+              {selectedOrder.coupon_code && (
+                <p><strong>Coupon:</strong> {selectedOrder.coupon_code} (-₹{selectedOrder.discount_amount})</p>
+              )}
               <p><strong>Total:</strong> ₹{selectedOrder.total_amount}</p>
             </div>
 
