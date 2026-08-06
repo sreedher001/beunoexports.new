@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { wholesaleEnquiryUrl } from "@/lib/utils";
+import { wholesaleEnquiryUrl, setBuyNowItem } from "@/lib/utils";
 import { ShoppingCart, Heart, Minus, Plus, ArrowLeft, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 
@@ -79,17 +79,9 @@ const ProductDetail = () => {
     else toast.success(`Added ${qty} ${product.unit} to cart!`);
   };
 
-  const buyNow = async () => {
-    if (!user) { toast.error("Please login to buy"); return; }
+  const buyNow = () => {
     if (!product) return;
-    const { data: existing } = await findCartRow(user.id, product.id);
-    if (existing) {
-      await supabase.from("cart_items").update({ quantity: qty }).eq("id", existing.id);
-    } else {
-      await supabase.from("cart_items").insert({
-        user_id: user.id, product_id: product.id, variant_id: selectedVariant?.id ?? null, quantity: qty,
-      });
-    }
+    setBuyNowItem({ product_id: product.id, variant_id: selectedVariant?.id ?? null, quantity: qty });
     navigate("/checkout");
   };
 

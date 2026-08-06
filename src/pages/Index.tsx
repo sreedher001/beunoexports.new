@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCatalogMode } from "@/contexts/CatalogModeContext";
-import { wholesaleEnquiryUrl } from "@/lib/utils";
+import { wholesaleEnquiryUrl, setBuyNowItem } from "@/lib/utils";
 import ScrollReveal from "@/components/ScrollReveal";
 import heroImg from "@/assets/hero-spices.jpg";
 import { ShieldCheck, Globe, Truck, Leaf, Star, Award, ShoppingBag, ShoppingCart, Heart, MessageCircle } from "lucide-react";
@@ -79,16 +79,8 @@ const Index = () => {
     toast.success("Added to cart!");
   };
 
-  const buyNow = async (product: Product) => {
-    if (!user) { toast.error("Please login to buy"); return; }
-    const { data: existing } = await supabase.from("cart_items").select("id")
-      .eq("user_id", user.id).eq("product_id", product.id).is("variant_id", null).maybeSingle();
-
-    if (existing) {
-      await supabase.from("cart_items").update({ quantity: 1 }).eq("id", existing.id);
-    } else {
-      await supabase.from("cart_items").insert({ user_id: user.id, product_id: product.id, quantity: 1 });
-    }
+  const buyNow = (product: Product) => {
+    setBuyNowItem({ product_id: product.id, variant_id: null, quantity: 1 });
     navigate("/checkout");
   };
 
