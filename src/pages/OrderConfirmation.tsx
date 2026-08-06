@@ -39,7 +39,7 @@ const OrderConfirmation = () => {
             <div className="space-y-2">
               {items.map((item) => (
                 <div key={item.id} className="flex justify-between text-sm p-2 rounded bg-muted">
-                  <span>{item.product_name} × {item.quantity}</span>
+                  <span>{item.product_name}{item.variant_label ? ` (${item.variant_label})` : ""} × {item.quantity}</span>
                   <span className="font-semibold">₹{item.price * item.quantity}</span>
                 </div>
               ))}

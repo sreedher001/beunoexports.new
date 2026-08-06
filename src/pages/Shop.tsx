@@ -37,6 +37,7 @@ const Shop = () => {
   const [selectedCat, setSelectedCat] = useState<string>(searchParams.get("category") || "all");
   const [loading, setLoading] = useState(true);
   const [wishlistIds, setWishlistIds] = useState<Set<string>>(new Set());
+  const [variantInfo, setVariantInfo] = useState<Record<string, { minPrice: number; minMrp: number }>>({});
 
   useEffect(() => {
     const cat = searchParams.get("category");
@@ -45,12 +46,19 @@ const Shop = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      const [{ data: prods }, { data: cats }] = await Promise.all([
+      const [{ data: prods }, { data: cats }, { data: allVariants }] = await Promise.all([
         supabase.from("products").select("*").eq("is_active", true),
         supabase.from("categories").select("*").order("name"),
+        supabase.from("product_variants").select("product_id, price, mrp"),
       ]);
       setProducts(prods || []);
       setCategories(cats || []);
+      const info: Record<string, { minPrice: number; minMrp: number }> = {};
+      (allVariants || []).forEach((v) => {
+        const cur = info[v.product_id];
+        if (!cur || v.price < cur.minPrice) info[v.product_id] = { minPrice: v.price, minMrp: v.mrp };
+      });
+      setVariantInfo(info);
       setLoading(false);
     };
     fetchData();
@@ -176,7 +184,11 @@ const Shop = () => {
             </div>
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {filtered.map((p) => (
+              {filtered.map((p) => {
+                const variant = variantInfo[p.id];
+                const displayPrice = variant ? variant.minPrice : p.price;
+                const displayMrp = variant ? variant.minMrp : p.mrp;
+                return (
                 <ScrollReveal key={p.id}>
                   <div className="group rounded-xl border border-border bg-card shadow-sm transition-shadow hover:shadow-lg overflow-hidden">
                     <Link to={`/product/${p.slug}`} className="block">
@@ -187,9 +199,9 @@ const Shop = () => {
                           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                           loading="lazy"
                         />
-                        {mode === "retail" && discount(p.mrp, p.price) > 0 && (
+                        {mode === "retail" && discount(displayMrp, displayPrice) > 0 && (
                           <span className="absolute top-2 left-2 bg-accent text-accent-foreground text-xs font-bold px-2 py-1 rounded">
-                            {discount(p.mrp, p.price)}% OFF
+                            {discount(displayMrp, displayPrice)}% OFF
                           </span>
                         )}
                       </div>
@@ -202,18 +214,28 @@ const Shop = () => {
                       {mode === "retail" ? (
                         <>
                           <div className="flex items-center gap-2 mb-3">
-                            <span className="text-lg font-bold">₹{p.price}</span>
-                            {p.mrp > p.price && (
-                              <span className="text-sm text-muted-foreground line-through">₹{p.mrp}</span>
+                            {variant && <span className="text-xs text-muted-foreground">From</span>}
+                            <span className="text-lg font-bold">₹{displayPrice}</span>
+                            {displayMrp > displayPrice && (
+                              <span className="text-sm text-muted-foreground line-through">₹{displayMrp}</span>
                             )}
                           </div>
                           <div className="flex gap-2">
-                            <button
-                              onClick={() => addToCart(p.id)}
-                              className="flex-1 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-all hover:shadow-md active:scale-[0.97] flex items-center justify-center gap-1"
-                            >
-                              <ShoppingCart className="h-3.5 w-3.5" /> Add to Cart
-                            </button>
+                            {variant ? (
+                              <Link
+                                to={`/product/${p.slug}`}
+                                className="flex-1 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-all hover:shadow-md active:scale-[0.97] flex items-center justify-center gap-1"
+                              >
+                                View Options
+                              </Link>
+                            ) : (
+                              <button
+                                onClick={() => addToCart(p.id)}
+                                className="flex-1 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-all hover:shadow-md active:scale-[0.97] flex items-center justify-center gap-1"
+                              >
+                                <ShoppingCart className="h-3.5 w-3.5" /> Add to Cart
+                              </button>
+                            )}
                             <button
                               onClick={() => toggleWishlist(p.id)}
                               className={`rounded-lg border px-3 py-2 transition-all active:scale-[0.97] ${
@@ -243,7 +265,8 @@ const Shop = () => {
                     </div>
                   </div>
                 </ScrollReveal>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

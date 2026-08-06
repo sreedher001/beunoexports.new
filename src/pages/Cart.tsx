@@ -9,10 +9,12 @@ type CartItem = {
   id: string;
   quantity: number;
   product_id: string;
+  variant_id: string | null;
   products: {
     id: string; name: string; price: number; mrp: number;
     image_url: string | null; unit: string; stock: number; slug: string;
   };
+  product_variants: { id: string; label: string; price: number; mrp: number; stock: number } | null;
 };
 
 const Cart = () => {
@@ -25,7 +27,7 @@ const Cart = () => {
     if (!user) return;
     const { data } = await supabase
       .from("cart_items")
-      .select("*, products(*)")
+      .select("*, products(*), product_variants(*)")
       .eq("user_id", user.id);
     setItems((data as unknown as CartItem[]) || []);
     setLoading(false);
@@ -33,9 +35,13 @@ const Cart = () => {
 
   useEffect(() => { fetchCart(); }, [fetchCart]);
 
+  const linePrice = (item: CartItem) => item.product_variants?.price ?? item.products.price;
+  const lineMrp = (item: CartItem) => item.product_variants?.mrp ?? item.products.mrp;
+  const lineStock = (item: CartItem) => item.product_variants?.stock ?? item.products.stock;
+
   const updateQty = async (id: string, qty: number) => {
     const item = items.find((i) => i.id === id);
-    if (qty < 1 || (item && qty > item.products.stock)) return;
+    if (qty < 1 || (item && qty > lineStock(item))) return;
     await supabase.from("cart_items").update({ quantity: qty }).eq("id", id);
     setItems((prev) => prev.map((i) => i.id === id ? { ...i, quantity: qty } : i));
   };
@@ -46,7 +52,7 @@ const Cart = () => {
     toast.success("Removed from cart");
   };
 
-  const total = items.reduce((sum, i) => sum + i.products.price * i.quantity, 0);
+  const total = items.reduce((sum, i) => sum + linePrice(i) * i.quantity, 0);
 
   if (!user) return (
     <div className="section-padding text-center">
@@ -83,10 +89,11 @@ const Cart = () => {
                     <Link to={`/product/${item.products.slug}`}>
                       <h3 className="font-semibold text-sm line-clamp-2 hover:text-secondary">{item.products.name}</h3>
                     </Link>
+                    {item.product_variants && <p className="text-xs text-muted-foreground">{item.product_variants.label}</p>}
                     <div className="flex items-center gap-2 mt-1">
-                      <span className="font-bold">₹{item.products.price}</span>
-                      {item.products.mrp > item.products.price && (
-                        <span className="text-xs text-muted-foreground line-through">₹{item.products.mrp}</span>
+                      <span className="font-bold">₹{linePrice(item)}</span>
+                      {lineMrp(item) > linePrice(item) && (
+                        <span className="text-xs text-muted-foreground line-through">₹{lineMrp(item)}</span>
                       )}
                     </div>
                     <div className="flex items-center gap-3 mt-3">
@@ -100,7 +107,7 @@ const Cart = () => {
                       </button>
                     </div>
                   </div>
-                  <p className="font-bold text-sm whitespace-nowrap">₹{item.products.price * item.quantity}</p>
+                  <p className="font-bold text-sm whitespace-nowrap">₹{linePrice(item) * item.quantity}</p>
                 </div>
               ))}
             </div>

@@ -13,11 +13,15 @@ type Product = {
   catalog_type: string; moq: number | null;
 };
 
+type Variant = { id: string; label: string; price: number; mrp: number; stock: number };
+
 const ProductDetail = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [product, setProduct] = useState<Product | null>(null);
+  const [variants, setVariants] = useState<Variant[]>([]);
+  const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null);
   const [qty, setQty] = useState(1);
   const [loading, setLoading] = useState(true);
   const [inWishlist, setInWishlist] = useState(false);
@@ -28,23 +32,48 @@ const ProductDetail = () => {
   }, [slug]);
 
   useEffect(() => {
+    if (!product) return;
+    supabase.from("product_variants").select("*").eq("product_id", product.id).order("sort_order")
+      .then(({ data }) => {
+        setVariants(data || []);
+        setSelectedVariant(data && data.length > 0 ? data[0] : null);
+      });
+  }, [product]);
+
+  useEffect(() => {
     if (!user || !product) return;
     supabase.from("wishlist_items").select("id").eq("user_id", user.id).eq("product_id", product.id).single()
       .then(({ data }) => setInWishlist(!!data));
   }, [user, product]);
 
+  const activePrice = selectedVariant?.price ?? product?.price ?? 0;
+  const activeMrp = selectedVariant?.mrp ?? product?.mrp ?? 0;
+  const activeStock = selectedVariant?.stock ?? product?.stock ?? 0;
+
+  const selectVariant = (v: Variant) => {
+    setSelectedVariant(v);
+    setQty(1);
+  };
+
+  const findCartRow = (userId: string, productId: string) => {
+    let query = supabase.from("cart_items").select("id, quantity").eq("user_id", userId).eq("product_id", productId);
+    query = selectedVariant ? query.eq("variant_id", selectedVariant.id) : query.is("variant_id", null);
+    return query.maybeSingle();
+  };
+
   const addToCart = async () => {
     if (!user) { toast.error("Please login to add to cart"); return; }
     if (!product) return;
-    const { data: existing } = await supabase.from("cart_items").select("id, quantity")
-      .eq("user_id", user.id).eq("product_id", product.id).maybeSingle();
+    const { data: existing } = await findCartRow(user.id, product.id);
 
     let error;
     if (existing) {
-      const nextQty = Math.min(existing.quantity + qty, product.stock);
+      const nextQty = Math.min(existing.quantity + qty, activeStock);
       ({ error } = await supabase.from("cart_items").update({ quantity: nextQty }).eq("id", existing.id));
     } else {
-      ({ error } = await supabase.from("cart_items").insert({ user_id: user.id, product_id: product.id, quantity: qty }));
+      ({ error } = await supabase.from("cart_items").insert({
+        user_id: user.id, product_id: product.id, variant_id: selectedVariant?.id ?? null, quantity: qty,
+      }));
     }
     if (error) toast.error("Failed to add");
     else toast.success(`Added ${qty} ${product.unit} to cart!`);
@@ -53,10 +82,14 @@ const ProductDetail = () => {
   const buyNow = async () => {
     if (!user) { toast.error("Please login to buy"); return; }
     if (!product) return;
-    await supabase.from("cart_items").upsert(
-      { user_id: user.id, product_id: product.id, quantity: qty },
-      { onConflict: "user_id,product_id" }
-    );
+    const { data: existing } = await findCartRow(user.id, product.id);
+    if (existing) {
+      await supabase.from("cart_items").update({ quantity: qty }).eq("id", existing.id);
+    } else {
+      await supabase.from("cart_items").insert({
+        user_id: user.id, product_id: product.id, variant_id: selectedVariant?.id ?? null, quantity: qty,
+      });
+    }
     navigate("/checkout");
   };
 
@@ -92,7 +125,7 @@ const ProductDetail = () => {
     </div>
   );
 
-  const disc = product.mrp > product.price ? Math.round(((product.mrp - product.price) / product.mrp) * 100) : 0;
+  const disc = activeMrp > activePrice ? Math.round(((activeMrp - activePrice) / activeMrp) * 100) : 0;
 
   return (
     <div className="section-padding">
@@ -110,10 +143,10 @@ const ProductDetail = () => {
 
             {product.catalog_type === "retail" ? (
               <div className="flex items-center gap-3 mb-4">
-                <span className="text-3xl font-bold text-secondary">₹{product.price}</span>
-                {product.mrp > product.price && (
+                <span className="text-3xl font-bold text-secondary">₹{activePrice}</span>
+                {activeMrp > activePrice && (
                   <>
-                    <span className="text-lg text-muted-foreground line-through">₹{product.mrp}</span>
+                    <span className="text-lg text-muted-foreground line-through">₹{activeMrp}</span>
                     <span className="bg-accent text-accent-foreground text-sm font-bold px-2 py-0.5 rounded">{disc}% OFF</span>
                   </>
                 )}
@@ -125,10 +158,31 @@ const ProductDetail = () => {
               </div>
             )}
 
+            {variants.length > 0 && (
+              <div className="mb-4">
+                <span className="text-sm font-medium block mb-2">Size:</span>
+                <div className="flex flex-wrap gap-2">
+                  {variants.map((v) => (
+                    <button
+                      key={v.id}
+                      onClick={() => selectVariant(v)}
+                      className={`rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
+                        selectedVariant?.id === v.id
+                          ? "border-secondary bg-secondary/10 text-secondary"
+                          : "border-border text-muted-foreground hover:border-secondary/50"
+                      }`}
+                    >
+                      {v.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <p className="text-muted-foreground mb-6">{product.description}</p>
             <p className="text-sm mb-4">
-              {product.stock > 0
-                ? <span className="text-green-600 font-medium">In Stock ({product.stock} {product.unit} available)</span>
+              {activeStock > 0
+                ? <span className="text-green-600 font-medium">In Stock ({activeStock} {product.unit} available)</span>
                 : <span className="text-destructive font-medium">Out of Stock</span>}
             </p>
 
@@ -139,16 +193,16 @@ const ProductDetail = () => {
                   <div className="flex items-center border border-border rounded-lg">
                     <button onClick={() => setQty(Math.max(1, qty - 1))} className="px-3 py-2 hover:bg-muted"><Minus className="h-4 w-4" /></button>
                     <span className="px-4 py-2 font-semibold min-w-[3rem] text-center">{qty}</span>
-                    <button onClick={() => setQty(Math.min(product.stock, qty + 1))} className="px-3 py-2 hover:bg-muted"><Plus className="h-4 w-4" /></button>
+                    <button onClick={() => setQty(Math.min(activeStock, qty + 1))} className="px-3 py-2 hover:bg-muted"><Plus className="h-4 w-4" /></button>
                   </div>
                 </div>
 
                 <div className="flex flex-wrap gap-3">
-                  <button onClick={addToCart} disabled={product.stock === 0}
+                  <button onClick={addToCart} disabled={activeStock === 0}
                     className="flex-1 rounded-lg bg-primary px-6 py-3 text-sm font-bold text-primary-foreground shadow-md transition-all hover:shadow-lg active:scale-[0.97] disabled:opacity-50 flex items-center justify-center gap-2">
                     <ShoppingCart className="h-4 w-4" /> Add to Cart
                   </button>
-                  <button onClick={buyNow} disabled={product.stock === 0}
+                  <button onClick={buyNow} disabled={activeStock === 0}
                     className="flex-1 rounded-lg bg-secondary px-6 py-3 text-sm font-bold text-secondary-foreground shadow-md transition-all hover:shadow-lg active:scale-[0.97] disabled:opacity-50">
                     Buy Now
                   </button>
@@ -160,7 +214,7 @@ const ProductDetail = () => {
               </>
             ) : (
               <a
-                href={wholesaleEnquiryUrl(product.name, product.moq, product.unit)}
+                href={wholesaleEnquiryUrl(`${product.name}${selectedVariant ? ` (${selectedVariant.label})` : ""}`, product.moq, product.unit)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full rounded-lg bg-[#25D366] px-6 py-3 text-sm font-bold text-white shadow-md transition-all hover:shadow-lg active:scale-[0.97] flex items-center justify-center gap-2"

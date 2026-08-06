@@ -12,6 +12,10 @@ type Product = {
 
 type Category = { id: string; name: string; slug: string };
 
+type VariantForm = { id?: string; label: string; price: string; mrp: string; stock: string };
+
+const emptyVariant: VariantForm = { label: "", price: "", mrp: "", stock: "" };
+
 const emptyForm = {
   name: "", slug: "", description: "", price: "", mrp: "", stock: "", unit: "kg", weight: "", category_id: "", image_url: "", is_active: true,
   catalog_type: "retail", moq: "",
@@ -20,18 +24,24 @@ const emptyForm = {
 const AdminProducts = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [variantCounts, setVariantCounts] = useState<Record<string, number>>({});
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [variants, setVariants] = useState<VariantForm[]>([]);
   const [uploading, setUploading] = useState(false);
 
   const fetchProducts = async () => {
-    const [{ data: prods }, { data: cats }] = await Promise.all([
+    const [{ data: prods }, { data: cats }, { data: allVariants }] = await Promise.all([
       supabase.from("products").select("*").order("created_at", { ascending: false }),
       supabase.from("categories").select("*").order("name"),
+      supabase.from("product_variants").select("product_id"),
     ]);
     setProducts(prods || []);
     setCategories(cats || []);
+    const counts: Record<string, number> = {};
+    (allVariants || []).forEach((v) => { counts[v.product_id] = (counts[v.product_id] || 0) + 1; });
+    setVariantCounts(counts);
   };
 
   useEffect(() => { fetchProducts(); }, []);
@@ -73,22 +83,59 @@ const AdminProducts = () => {
       moq: form.moq ? Number(form.moq) : null,
     };
 
+    let productId = editing;
+
     if (editing) {
       const { error } = await supabase.from("products").update(payload).eq("id", editing);
-      if (error) toast.error("Update failed");
-      else toast.success("Product updated!");
+      if (error) { toast.error("Update failed"); return; }
     } else {
-      const { error } = await supabase.from("products").insert(payload);
-      if (error) toast.error(error.message);
-      else toast.success("Product added!");
+      const { data, error } = await supabase.from("products").insert(payload).select().single();
+      if (error || !data) { toast.error(error?.message || "Failed to add product"); return; }
+      productId = data.id;
     }
+
+    const validVariants = variants.filter((v) => v.label.trim());
+    const variantError = await syncVariants(productId!, validVariants);
+    if (variantError) { toast.error("Product saved, but variants failed to save"); }
+    else toast.success(editing ? "Product updated!" : "Product added!");
+
     setShowForm(false);
     setEditing(null);
     setForm(emptyForm);
+    setVariants([]);
     fetchProducts();
   };
 
-  const editProduct = (p: Product) => {
+  const syncVariants = async (productId: string, formVariants: VariantForm[]) => {
+    const { data: existing } = await supabase.from("product_variants").select("id").eq("product_id", productId);
+    const existingIds = new Set((existing || []).map((v) => v.id));
+    const keptIds = new Set(formVariants.filter((v) => v.id).map((v) => v.id));
+    const toDelete = [...existingIds].filter((id) => !keptIds.has(id));
+
+    if (toDelete.length > 0) {
+      const { error } = await supabase.from("product_variants").delete().in("id", toDelete);
+      if (error) return error;
+    }
+
+    for (let i = 0; i < formVariants.length; i++) {
+      const v = formVariants[i];
+      const row = {
+        product_id: productId,
+        label: v.label.trim(),
+        price: Number(v.price) || 0,
+        mrp: Number(v.mrp) || Number(v.price) || 0,
+        stock: Number(v.stock) || 0,
+        sort_order: i,
+      };
+      const { error } = v.id
+        ? await supabase.from("product_variants").update(row).eq("id", v.id)
+        : await supabase.from("product_variants").insert(row);
+      if (error) return error;
+    }
+    return null;
+  };
+
+  const editProduct = async (p: Product) => {
     setForm({
       name: p.name, slug: p.slug, description: p.description || "",
       price: String(p.price), mrp: String(p.mrp), stock: String(p.stock),
@@ -96,6 +143,8 @@ const AdminProducts = () => {
       image_url: p.image_url || "", is_active: p.is_active,
       catalog_type: p.catalog_type, moq: p.moq ? String(p.moq) : "",
     });
+    const { data } = await supabase.from("product_variants").select("*").eq("product_id", p.id).order("sort_order");
+    setVariants((data || []).map((v) => ({ id: v.id, label: v.label, price: String(v.price), mrp: String(v.mrp), stock: String(v.stock) })));
     setEditing(p.id);
     setShowForm(true);
   };
@@ -111,7 +160,7 @@ const AdminProducts = () => {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Products ({products.length})</h1>
-        <button onClick={() => { setShowForm(true); setEditing(null); setForm(emptyForm); }}
+        <button onClick={() => { setShowForm(true); setEditing(null); setForm(emptyForm); setVariants([]); }}
           className="flex items-center gap-1 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
           <Plus className="h-4 w-4" /> Add Product
         </button>
@@ -199,6 +248,39 @@ const AdminProducts = () => {
               <input type="checkbox" checked={form.is_active} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} id="active" />
               <label htmlFor="active" className="text-sm">Active (visible in shop)</label>
             </div>
+
+            <div className="sm:col-span-2 border-t border-border pt-4 mt-2">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <h4 className="text-sm font-semibold">Variants (optional)</h4>
+                  <p className="text-xs text-muted-foreground">e.g. 250g, 500g, 1kg — each with its own price and stock. If you add variants, they override the base Price/Stock above on the storefront.</p>
+                </div>
+                <button type="button" onClick={() => setVariants([...variants, { ...emptyVariant }])}
+                  className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted">
+                  <Plus className="h-3.5 w-3.5" /> Add Variant
+                </button>
+              </div>
+              {variants.length > 0 && (
+                <div className="space-y-2">
+                  {variants.map((v, i) => (
+                    <div key={i} className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-2 items-center">
+                      <input value={v.label} onChange={(e) => setVariants(variants.map((x, j) => j === i ? { ...x, label: e.target.value } : x))}
+                        placeholder="Label (e.g. 500g)"
+                        className="rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
+                      <input type="number" value={v.price} onChange={(e) => setVariants(variants.map((x, j) => j === i ? { ...x, price: e.target.value } : x))}
+                        placeholder="Price" className="w-24 rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
+                      <input type="number" value={v.mrp} onChange={(e) => setVariants(variants.map((x, j) => j === i ? { ...x, mrp: e.target.value } : x))}
+                        placeholder="MRP" className="w-24 rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
+                      <input type="number" value={v.stock} onChange={(e) => setVariants(variants.map((x, j) => j === i ? { ...x, stock: e.target.value } : x))}
+                        placeholder="Stock" className="w-20 rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
+                      <button type="button" onClick={() => setVariants(variants.filter((_, j) => j !== i))}
+                        className="p-2 text-muted-foreground hover:text-destructive"><X className="h-4 w-4" /></button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <div className="sm:col-span-2">
               <button type="submit" className="rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground">
                 {editing ? "Update Product" : "Add Product"}
@@ -229,7 +311,10 @@ const AdminProducts = () => {
                       <img src={p.image_url || "/placeholder.svg"} alt="" className="h-10 w-10 rounded object-cover" />
                       <div>
                         <p className="font-medium">{p.name}</p>
-                        <p className="text-xs text-muted-foreground">{p.weight}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {p.weight}
+                          {variantCounts[p.id] > 0 && <span className="ml-1 text-secondary font-medium">· {variantCounts[p.id]} variants</span>}
+                        </p>
                       </div>
                     </div>
                   </td>

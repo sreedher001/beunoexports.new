@@ -19,6 +19,7 @@ const orderSchema = z.object({
 type CartItemWithProduct = {
   id: string; quantity: number; product_id: string;
   products: { id: string; name: string; price: number; image_url: string | null; unit: string };
+  product_variants: { id: string; label: string; price: number } | null;
 };
 
 const indianStates = [
@@ -57,11 +58,12 @@ const Checkout = () => {
       else setForm((f) => ({ ...f, email: user.email || "" }));
     });
 
-    supabase.from("cart_items").select("*, products(*)").eq("user_id", user.id)
+    supabase.from("cart_items").select("*, products(*), product_variants(*)").eq("user_id", user.id)
       .then(({ data }) => { setCartItems((data as unknown as CartItemWithProduct[]) || []); setLoading(false); });
   }, [user, navigate]);
 
-  const total = cartItems.reduce((sum, i) => sum + i.products.price * i.quantity, 0);
+  const linePrice = (item: CartItemWithProduct) => item.product_variants?.price ?? item.products.price;
+  const total = cartItems.reduce((sum, i) => sum + linePrice(i) * i.quantity, 0);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,7 +105,8 @@ const Checkout = () => {
       product_name: item.products.name,
       product_image: item.products.image_url,
       quantity: item.quantity,
-      price: item.products.price,
+      price: linePrice(item),
+      variant_label: item.product_variants?.label ?? null,
     }));
     await supabase.from("order_items").insert(orderItems);
 
@@ -179,9 +182,10 @@ const Checkout = () => {
                       <img src={item.products.image_url || "/placeholder.svg"} alt="" className="h-12 w-12 rounded object-cover" />
                       <div className="flex-1 min-w-0">
                         <p className="font-medium line-clamp-1">{item.products.name}</p>
-                        <p className="text-muted-foreground">₹{item.products.price} × {item.quantity}</p>
+                        {item.product_variants && <p className="text-xs text-muted-foreground">{item.product_variants.label}</p>}
+                        <p className="text-muted-foreground">₹{linePrice(item)} × {item.quantity}</p>
                       </div>
-                      <p className="font-semibold">₹{item.products.price * item.quantity}</p>
+                      <p className="font-semibold">₹{linePrice(item) * item.quantity}</p>
                     </div>
                   ))}
                 </div>

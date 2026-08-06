@@ -102,7 +102,7 @@ const AdminOrders = () => {
                 <div key={item.id} className="flex gap-3 p-2 rounded bg-muted text-sm">
                   {item.product_image && <img src={item.product_image} alt="" className="h-10 w-10 rounded object-cover" />}
                   <div className="flex-1">
-                    <p className="font-medium">{item.product_name}</p>
+                    <p className="font-medium">{item.product_name}{item.variant_label ? ` (${item.variant_label})` : ""}</p>
                     <p className="text-xs text-muted-foreground">Qty: {item.quantity} × ₹{item.price}</p>
                   </div>
                   <p className="font-semibold">₹{item.price * item.quantity}</p>

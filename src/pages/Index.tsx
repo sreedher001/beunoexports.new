@@ -31,11 +31,23 @@ const Index = () => {
   const { mode } = useCatalogMode();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [variantInfo, setVariantInfo] = useState<Record<string, { minPrice: number; minMrp: number }>>({});
 
   useEffect(() => {
     supabase.from("products").select("id,name,slug,price,mrp,image_url,weight,unit,moq")
       .eq("is_active", true).eq("catalog_type", mode).limit(8)
-      .then(({ data }) => setProducts(data || []));
+      .then(async ({ data }) => {
+        setProducts(data || []);
+        const ids = (data || []).map((p) => p.id);
+        if (ids.length === 0) { setVariantInfo({}); return; }
+        const { data: allVariants } = await supabase.from("product_variants").select("product_id, price, mrp").in("product_id", ids);
+        const info: Record<string, { minPrice: number; minMrp: number }> = {};
+        (allVariants || []).forEach((v) => {
+          const cur = info[v.product_id];
+          if (!cur || v.price < cur.minPrice) info[v.product_id] = { minPrice: v.price, minMrp: v.mrp };
+        });
+        setVariantInfo(info);
+      });
     supabase.from("categories").select("*").order("name")
       .then(({ data }) => setCategories(data || []));
   }, [mode]);
@@ -101,16 +113,20 @@ const Index = () => {
           </ScrollReveal>
           {products.length > 0 ? (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {products.map((p) => (
+              {products.map((p) => {
+                const variant = variantInfo[p.id];
+                const displayPrice = variant ? variant.minPrice : p.price;
+                const displayMrp = variant ? variant.minMrp : p.mrp;
+                return (
                 <ScrollReveal key={p.id}>
                   <div className="group rounded-xl border border-border bg-card shadow-sm overflow-hidden transition-shadow hover:shadow-lg">
                     <Link to={`/product/${p.slug}`} className="block">
                       <div className="aspect-square overflow-hidden relative">
                         <img src={p.image_url || "/placeholder.svg"} alt={p.name}
                           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
-                        {mode === "retail" && disc(p.mrp, p.price) > 0 && (
+                        {mode === "retail" && disc(displayMrp, displayPrice) > 0 && (
                           <span className="absolute top-2 left-2 bg-accent text-accent-foreground text-xs font-bold px-2 py-1 rounded">
-                            {disc(p.mrp, p.price)}% OFF
+                            {disc(displayMrp, displayPrice)}% OFF
                           </span>
                         )}
                       </div>
@@ -122,8 +138,9 @@ const Index = () => {
                     <div className="p-4 pt-2">
                       {mode === "retail" ? (
                         <div className="flex items-center gap-2">
-                          <span className="text-lg font-bold">₹{p.price}</span>
-                          {p.mrp > p.price && <span className="text-sm text-muted-foreground line-through">₹{p.mrp}</span>}
+                          {variant && <span className="text-xs text-muted-foreground">From</span>}
+                          <span className="text-lg font-bold">₹{displayPrice}</span>
+                          {displayMrp > displayPrice && <span className="text-sm text-muted-foreground line-through">₹{displayMrp}</span>}
                         </div>
                       ) : (
                         <>
@@ -142,7 +159,8 @@ const Index = () => {
                     </div>
                   </div>
                 </ScrollReveal>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <p className="text-center text-muted-foreground">Products coming soon! Add products from the admin panel.</p>

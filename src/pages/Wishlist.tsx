@@ -18,11 +18,25 @@ const Wishlist = () => {
   const { user } = useAuth();
   const [items, setItems] = useState<WishlistItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [variantInfo, setVariantInfo] = useState<Record<string, { minPrice: number; minMrp: number }>>({});
 
   useEffect(() => {
     if (!user) return;
     supabase.from("wishlist_items").select("*, products(*)").eq("user_id", user.id)
-      .then(({ data }) => { setItems((data as unknown as WishlistItem[]) || []); setLoading(false); });
+      .then(async ({ data }) => {
+        const list = (data as unknown as WishlistItem[]) || [];
+        setItems(list);
+        setLoading(false);
+        const ids = list.map((i) => i.products.id);
+        if (ids.length === 0) return;
+        const { data: allVariants } = await supabase.from("product_variants").select("product_id, price, mrp").in("product_id", ids);
+        const info: Record<string, { minPrice: number; minMrp: number }> = {};
+        (allVariants || []).forEach((v) => {
+          const cur = info[v.product_id];
+          if (!cur || v.price < cur.minPrice) info[v.product_id] = { minPrice: v.price, minMrp: v.mrp };
+        });
+        setVariantInfo(info);
+      });
   }, [user]);
 
   const remove = async (id: string) => {
@@ -66,7 +80,11 @@ const Wishlist = () => {
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {items.map((item) => (
+            {items.map((item) => {
+              const variant = variantInfo[item.products.id];
+              const displayPrice = variant ? variant.minPrice : item.products.price;
+              const displayMrp = variant ? variant.minMrp : item.products.mrp;
+              return (
               <div key={item.id} className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
                 <Link to={`/product/${item.products.slug}`}>
                   <img src={item.products.image_url || "/placeholder.svg"} alt={item.products.name} className="w-full aspect-square object-cover" />
@@ -76,23 +94,32 @@ const Wishlist = () => {
                     <h3 className="font-semibold text-sm mb-1 hover:text-secondary">{item.products.name}</h3>
                   </Link>
                   <div className="flex items-center gap-2 mb-3">
-                    <span className="font-bold">₹{item.products.price}</span>
-                    {item.products.mrp > item.products.price && (
-                      <span className="text-xs text-muted-foreground line-through">₹{item.products.mrp}</span>
+                    {variant && <span className="text-xs text-muted-foreground">From</span>}
+                    <span className="font-bold">₹{displayPrice}</span>
+                    {displayMrp > displayPrice && (
+                      <span className="text-xs text-muted-foreground line-through">₹{displayMrp}</span>
                     )}
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={() => addToCart(item.products.id)}
-                      className="flex-1 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground flex items-center justify-center gap-1">
-                      <ShoppingCart className="h-3.5 w-3.5" /> Add to Cart
-                    </button>
+                    {variant ? (
+                      <Link to={`/product/${item.products.slug}`}
+                        className="flex-1 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground flex items-center justify-center gap-1">
+                        View Options
+                      </Link>
+                    ) : (
+                      <button onClick={() => addToCart(item.products.id)}
+                        className="flex-1 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground flex items-center justify-center gap-1">
+                        <ShoppingCart className="h-3.5 w-3.5" /> Add to Cart
+                      </button>
+                    )}
                     <button onClick={() => remove(item.id)} className="rounded-lg border border-border px-3 py-2 text-muted-foreground hover:text-destructive">
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
