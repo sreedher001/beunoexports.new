@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Replace https://buenoexports.com with your live domain once deployed -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://buenoexports.com/</loc><priority>1.0</priority></url>
+  <url><loc>https://buenoexports.com/shop</loc><priority>0.9</priority></url>
+  <url><loc>https://buenoexports.com/products</loc><priority>0.7</priority></url>
+  <url><loc>https://buenoexports.com/export</loc><priority>0.7</priority></url>
+  <url><loc>https://buenoexports.com/certifications</loc><priority>0.5</priority></url>
+  <url><loc>https://buenoexports.com/about</loc><priority>0.5</priority></url>
+  <url><loc>https://buenoexports.com/blog</loc><priority>0.5</priority></url>
+  <url><loc>https://buenoexports.com/contact</loc><priority>0.5</priority></url>
+  <url><loc>https://buenoexports.com/legal/privacy</loc><priority>0.2</priority></url>
+  <url><loc>https://buenoexports.com/legal/terms</loc><priority>0.2</priority></url>
+  <url><loc>https://buenoexports.com/legal/returns</loc><priority>0.2</priority></url>
+</urlset>

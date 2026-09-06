@@ -35,6 +35,8 @@ const Shop = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [search, setSearch] = useState("");
   const [selectedCat, setSelectedCat] = useState<string>(searchParams.get("category") || "all");
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
   const [loading, setLoading] = useState(true);
   const [wishlistIds, setWishlistIds] = useState<Set<string>>(new Set());
   const [variantInfo, setVariantInfo] = useState<Record<string, { minPrice: number; minMrp: number }>>({});
@@ -83,14 +85,19 @@ const Shop = () => {
 
   const filtered = useMemo(() => {
     const catId = categoryIdBySlug[selectedCat] || selectedCat;
+    const min = minPrice ? Number(minPrice) : null;
+    const max = maxPrice ? Number(maxPrice) : null;
     return products.filter((p) => {
       const matchMode = p.catalog_type === mode;
       const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
         p.description?.toLowerCase().includes(search.toLowerCase());
       const matchCat = selectedCat === "all" || p.category_id === catId;
-      return matchMode && matchSearch && matchCat;
+      const effectivePrice = variantInfo[p.id]?.minPrice ?? p.price;
+      const matchMin = min == null || effectivePrice >= min;
+      const matchMax = max == null || effectivePrice <= max;
+      return matchMode && matchSearch && matchCat && matchMin && matchMax;
     });
-  }, [products, search, selectedCat, categoryIdBySlug, mode]);
+  }, [products, search, selectedCat, categoryIdBySlug, mode, minPrice, maxPrice, variantInfo]);
 
   const addToCart = async (productId: string) => {
     if (!user) { toast.error("Please login to add to cart"); return; }
@@ -165,6 +172,13 @@ const Shop = () => {
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <input type="number" min={0} placeholder="Min ₹" value={minPrice} onChange={(e) => setMinPrice(e.target.value)}
+                className="w-24 rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-secondary" />
+              <span className="text-muted-foreground text-sm">–</span>
+              <input type="number" min={0} placeholder="Max ₹" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)}
+                className="w-24 rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-secondary" />
             </div>
           </div>
 

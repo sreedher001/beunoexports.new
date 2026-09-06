@@ -100,8 +100,13 @@ const Footer = () => {
           </div>
         </div>
 
-        <div className="mt-12 border-t border-primary-foreground/15 pt-6 text-center text-xs opacity-70">
-          © {new Date().getFullYear()} BuenoExports. All rights reserved. Premium Indian Spices — Trusted Source.
+        <div className="mt-12 border-t border-primary-foreground/15 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs opacity-70">
+          <span>© {new Date().getFullYear()} BuenoExports. All rights reserved. Premium Indian Spices — Trusted Source.</span>
+          <div className="flex gap-4">
+            <Link to="/legal/privacy" className="hover:opacity-100">Privacy Policy</Link>
+            <Link to="/legal/terms" className="hover:opacity-100">Terms of Service</Link>
+            <Link to="/legal/returns" className="hover:opacity-100">Return Policy</Link>
+          </div>
         </div>
       </div>
     </footer>

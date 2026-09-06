@@ -30,6 +30,8 @@ const AdminProducts = () => {
   const [form, setForm] = useState(emptyForm);
   const [variants, setVariants] = useState<VariantForm[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [galleryImages, setGalleryImages] = useState<{ id: string; url: string }[]>([]);
+  const [uploadingGallery, setUploadingGallery] = useState(false);
 
   const fetchProducts = async () => {
     const [{ data: prods }, { data: cats }, { data: allVariants }] = await Promise.all([
@@ -63,6 +65,27 @@ const AdminProducts = () => {
     const { data } = supabase.storage.from("product-images").getPublicUrl(path);
     setForm({ ...form, image_url: data.publicUrl });
     setUploading(false);
+  };
+
+  const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !editing) return;
+    setUploadingGallery(true);
+    const ext = file.name.split(".").pop();
+    const path = `gallery-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("product-images").upload(path, file);
+    if (error) { toast.error("Upload failed"); setUploadingGallery(false); return; }
+    const { data } = supabase.storage.from("product-images").getPublicUrl(path);
+    const { data: row, error: insertError } = await supabase.from("product_images")
+      .insert({ product_id: editing, url: data.publicUrl, sort_order: galleryImages.length }).select().single();
+    if (!insertError && row) setGalleryImages([...galleryImages, row]);
+    setUploadingGallery(false);
+    e.target.value = "";
+  };
+
+  const removeGalleryImage = async (id: string) => {
+    await supabase.from("product_images").delete().eq("id", id);
+    setGalleryImages(galleryImages.filter((g) => g.id !== id));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -145,6 +168,8 @@ const AdminProducts = () => {
     });
     const { data } = await supabase.from("product_variants").select("*").eq("product_id", p.id).order("sort_order");
     setVariants((data || []).map((v) => ({ id: v.id, label: v.label, price: String(v.price), mrp: String(v.mrp), stock: String(v.stock) })));
+    const { data: images } = await supabase.from("product_images").select("id,url").eq("product_id", p.id).order("sort_order");
+    setGalleryImages(images || []);
     setEditing(p.id);
     setShowForm(true);
   };
@@ -160,7 +185,7 @@ const AdminProducts = () => {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Products ({products.length})</h1>
-        <button onClick={() => { setShowForm(true); setEditing(null); setForm(emptyForm); setVariants([]); }}
+        <button onClick={() => { setShowForm(true); setEditing(null); setForm(emptyForm); setVariants([]); setGalleryImages([]); }}
           className="flex items-center gap-1 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
           <Plus className="h-4 w-4" /> Add Product
         </button>
@@ -243,6 +268,30 @@ const AdminProducts = () => {
               <input type="file" accept="image/*" onChange={handleImageUpload} className="text-sm" />
               {uploading && <p className="text-xs text-muted-foreground mt-1">Uploading...</p>}
               {form.image_url && <img src={form.image_url} alt="" className="mt-2 h-16 w-16 rounded object-cover" />}
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Additional Gallery Photos</label>
+              {editing ? (
+                <>
+                  <input type="file" accept="image/*" onChange={handleGalleryUpload} className="text-sm" />
+                  {uploadingGallery && <p className="text-xs text-muted-foreground mt-1">Uploading...</p>}
+                  {galleryImages.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {galleryImages.map((g) => (
+                        <div key={g.id} className="relative">
+                          <img src={g.url} alt="" className="h-16 w-16 rounded object-cover" />
+                          <button type="button" onClick={() => removeGalleryImage(g.id)}
+                            className="absolute -top-1.5 -right-1.5 rounded-full bg-destructive text-white p-0.5">
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <p className="text-xs text-muted-foreground">Save the product first, then edit it to add extra gallery photos.</p>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <input type="checkbox" checked={form.is_active} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} id="active" />

@@ -22,6 +22,12 @@ const Cart = () => {
   const navigate = useNavigate();
   const [items, setItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [shippingSettings, setShippingSettings] = useState({ flat_shipping_rate: 0, free_shipping_threshold: null as number | null });
+
+  useEffect(() => {
+    supabase.from("site_settings").select("flat_shipping_rate,free_shipping_threshold").eq("id", true).single()
+      .then(({ data }) => { if (data) setShippingSettings(data); });
+  }, []);
 
   const fetchCart = useCallback(async () => {
     if (!user) return;
@@ -53,6 +59,8 @@ const Cart = () => {
   };
 
   const total = items.reduce((sum, i) => sum + linePrice(i) * i.quantity, 0);
+  const shipping = shippingSettings.free_shipping_threshold != null && total >= shippingSettings.free_shipping_threshold
+    ? 0 : shippingSettings.flat_shipping_rate;
 
   if (!user) return (
     <div className="section-padding text-center">
@@ -116,10 +124,14 @@ const Cart = () => {
                 <h3 className="font-semibold mb-4">Order Summary</h3>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>₹{total}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Delivery</span><span className="text-green-600">Free</span></div>
-                  <div className="border-t border-border pt-2 mt-2 flex justify-between font-bold text-lg">
-                    <span>Total</span><span>₹{total}</span>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Delivery</span>
+                    <span className={shipping === 0 ? "text-green-600" : ""}>{shipping === 0 ? "Free" : `₹${shipping}`}</span>
                   </div>
+                  <div className="border-t border-border pt-2 mt-2 flex justify-between font-bold text-lg">
+                    <span>Total</span><span>₹{total + shipping}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Coupons and taxes are applied at checkout.</p>
                 </div>
                 <button onClick={() => navigate("/checkout")}
                   className="w-full mt-6 rounded-lg bg-secondary px-6 py-3 text-sm font-bold text-secondary-foreground shadow-md transition-all hover:shadow-lg active:scale-[0.97]">

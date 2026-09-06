@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { wholesaleEnquiryUrl, setBuyNowItem } from "@/lib/utils";
 import { ShoppingCart, Heart, Minus, Plus, ArrowLeft, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
+import ProductReviews from "@/components/ProductReviews";
 
 type Product = {
   id: string; name: string; slug: string; description: string | null;
@@ -25,11 +26,20 @@ const ProductDetail = () => {
   const [qty, setQty] = useState(1);
   const [loading, setLoading] = useState(true);
   const [inWishlist, setInWishlist] = useState(false);
+  const [gallery, setGallery] = useState<string[]>([]);
+  const [activeImage, setActiveImage] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.from("products").select("*").eq("slug", slug).eq("is_active", true).single()
       .then(({ data }) => { setProduct(data); setLoading(false); });
   }, [slug]);
+
+  useEffect(() => {
+    if (!product) return;
+    setActiveImage(product.image_url);
+    supabase.from("product_images").select("url").eq("product_id", product.id).order("sort_order")
+      .then(({ data }) => setGallery(data?.map((d) => d.url) || []));
+  }, [product]);
 
   useEffect(() => {
     if (!product) return;
@@ -126,8 +136,20 @@ const ProductDetail = () => {
           <ArrowLeft className="h-4 w-4" /> Back
         </button>
         <div className="grid md:grid-cols-2 gap-8">
-          <div className="rounded-xl overflow-hidden border border-border shadow-md">
-            <img src={product.image_url || "/placeholder.svg"} alt={product.name} className="w-full aspect-square object-cover" />
+          <div>
+            <div className="rounded-xl overflow-hidden border border-border shadow-md">
+              <img src={activeImage || "/placeholder.svg"} alt={product.name} className="w-full aspect-square object-cover" />
+            </div>
+            {[product.image_url, ...gallery].filter(Boolean).length > 1 && (
+              <div className="flex gap-2 mt-3 overflow-x-auto">
+                {[product.image_url, ...gallery].filter((u): u is string => !!u).map((url, i) => (
+                  <button key={i} onClick={() => setActiveImage(url)}
+                    className={`h-16 w-16 shrink-0 rounded-lg overflow-hidden border-2 ${activeImage === url ? "border-secondary" : "border-transparent"}`}>
+                    <img src={url} alt="" className="h-full w-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <div>
             <h1 className="text-2xl md:text-3xl font-bold mb-2">{product.name}</h1>
@@ -216,6 +238,7 @@ const ProductDetail = () => {
             )}
           </div>
         </div>
+        <ProductReviews productId={product.id} />
       </div>
     </div>
   );

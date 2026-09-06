@@ -1,0 +1,3 @@
+
+ALTER TABLE public.orders ADD COLUMN shipping_amount NUMERIC NOT NULL DEFAULT 0;
+ALTER TABLE public.orders ADD COLUMN tax_amount NUMERIC NOT NULL DEFAULT 0;

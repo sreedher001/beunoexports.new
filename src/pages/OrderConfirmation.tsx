@@ -1,20 +1,35 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, useLocation, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { CheckCircle } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
+type ConfirmationItem = { product_name: string; variant_label: string | null; quantity: number; price: number };
+type NavState = { guestOrder?: boolean; order?: Partial<Tables<"orders">>; items?: ConfirmationItem[] };
+
 const OrderConfirmation = () => {
   const { orderId } = useParams();
-  const [order, setOrder] = useState<Tables<"orders"> | null>(null);
-  const [items, setItems] = useState<Tables<"order_items">[]>([]);
+  const location = useLocation();
+  const navState = location.state as NavState | null;
+  const [order, setOrder] = useState<Partial<Tables<"orders">> | null>(navState?.order ?? null);
+  const [items, setItems] = useState<ConfirmationItem[]>(navState?.items ?? []);
+  const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
-    if (!orderId) return;
-    supabase.from("orders").select("*").eq("id", orderId).single().then(({ data }) => setOrder(data));
+    if (navState?.order || !orderId) return;
+    supabase.from("orders").select("*").eq("id", orderId).single().then(({ data }) => {
+      if (!data) { setNotFound(true); return; }
+      setOrder(data);
+    });
     supabase.from("order_items").select("*").eq("order_id", orderId).then(({ data }) => setItems(data || []));
-  }, [orderId]);
+  }, [orderId, navState]);
 
+  if (notFound) return (
+    <div className="section-padding text-center">
+      <h2 className="mb-2">Order details unavailable</h2>
+      <p className="text-sm text-muted-foreground">This confirmation page can only be viewed right after checkout, or by a logged-in account. Check your email for order details.</p>
+    </div>
+  );
   if (!order) return <div className="section-padding text-center text-muted-foreground">Loading...</div>;
 
   return (
@@ -34,14 +49,16 @@ const OrderConfirmation = () => {
             {order.coupon_code && (
               <p className="text-sm"><strong>Coupon:</strong> {order.coupon_code} (-₹{order.discount_amount})</p>
             )}
+            {!!order.shipping_amount && <p className="text-sm"><strong>Shipping:</strong> ₹{order.shipping_amount}</p>}
+            {!!order.tax_amount && <p className="text-sm"><strong>Tax:</strong> ₹{order.tax_amount}</p>}
             <p className="text-sm"><strong>Total:</strong> ₹{order.total_amount}</p>
           </div>
 
           <div className="text-left mb-6">
             <h3 className="font-semibold mb-3">Order Items</h3>
             <div className="space-y-2">
-              {items.map((item) => (
-                <div key={item.id} className="flex justify-between text-sm p-2 rounded bg-muted">
+              {items.map((item, idx) => (
+                <div key={idx} className="flex justify-between text-sm p-2 rounded bg-muted">
                   <span>{item.product_name}{item.variant_label ? ` (${item.variant_label})` : ""} × {item.quantity}</span>
                   <span className="font-semibold">₹{item.price * item.quantity}</span>
                 </div>

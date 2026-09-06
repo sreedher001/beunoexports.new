@@ -144,10 +144,15 @@ export type Database = {
           notes: string | null
           order_number: string
           payment_method: string
+          payment_status: string
+          razorpay_order_id: string | null
+          razorpay_payment_id: string | null
           phone: string
           pincode: string
+          shipping_amount: number
           state: string
           status: string
+          tax_amount: number
           total_amount: number
           updated_at: string
           user_id: string | null
@@ -164,10 +169,15 @@ export type Database = {
           notes?: string | null
           order_number: string
           payment_method?: string
+          payment_status?: string
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
           phone: string
           pincode: string
+          shipping_amount?: number
           state: string
           status?: string
+          tax_amount?: number
           total_amount?: number
           updated_at?: string
           user_id?: string | null
@@ -184,13 +194,117 @@ export type Database = {
           notes?: string | null
           order_number?: string
           payment_method?: string
+          payment_status?: string
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
           phone?: string
           pincode?: string
+          shipping_amount?: number
           state?: string
           status?: string
+          tax_amount?: number
           total_amount?: number
           updated_at?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      site_settings: {
+        Row: {
+          id: boolean
+          flat_shipping_rate: number
+          free_shipping_threshold: number | null
+          tax_percent: number
+          ga_measurement_id: string | null
+          meta_pixel_id: string | null
+          search_console_verification: string | null
+          default_meta_title: string | null
+          default_meta_description: string | null
+          default_og_image: string | null
+          cod_enabled: boolean
+          online_payment_enabled: boolean
+          updated_at: string
+        }
+        Insert: {
+          id?: boolean
+          flat_shipping_rate?: number
+          free_shipping_threshold?: number | null
+          tax_percent?: number
+          ga_measurement_id?: string | null
+          meta_pixel_id?: string | null
+          search_console_verification?: string | null
+          default_meta_title?: string | null
+          default_meta_description?: string | null
+          default_og_image?: string | null
+          cod_enabled?: boolean
+          online_payment_enabled?: boolean
+          updated_at?: string
+        }
+        Update: {
+          id?: boolean
+          flat_shipping_rate?: number
+          free_shipping_threshold?: number | null
+          tax_percent?: number
+          ga_measurement_id?: string | null
+          meta_pixel_id?: string | null
+          search_console_verification?: string | null
+          default_meta_title?: string | null
+          default_meta_description?: string | null
+          default_og_image?: string | null
+          cod_enabled?: boolean
+          online_payment_enabled?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      product_reviews: {
+        Row: {
+          id: string
+          product_id: string
+          user_id: string
+          rating: number
+          comment: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          product_id: string
+          user_id: string
+          rating: number
+          comment?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          product_id?: string
+          user_id?: string
+          rating?: number
+          comment?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      product_images: {
+        Row: {
+          id: string
+          product_id: string
+          url: string
+          sort_order: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          product_id: string
+          url: string
+          sort_order?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          product_id?: string
+          url?: string
+          sort_order?: number
+          created_at?: string
         }
         Relationships: []
       }
@@ -462,6 +576,31 @@ export type Database = {
           _code: string
         }
         Returns: undefined
+      }
+      place_order_atomic: {
+        Args: {
+          _full_name: string
+          _phone: string
+          _email: string
+          _address: string
+          _city: string
+          _state: string
+          _pincode: string
+          _notes: string | null
+          _coupon_code: string | null
+          _discount_amount: number
+          _payment_method: string
+          _items: Json
+          _shipping_amount?: number
+          _tax_amount?: number
+          _payment_status?: string
+          _razorpay_order_id?: string | null
+          _razorpay_payment_id?: string | null
+        }
+        Returns: {
+          order_id: string
+          order_number: string
+        }[]
       }
     }
     Enums: {
