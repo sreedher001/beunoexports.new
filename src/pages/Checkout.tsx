@@ -21,8 +21,8 @@ const orderSchema = z.object({
 
 type CheckoutItem = {
   id: string; quantity: number; product_id: string;
-  products: { id: string; name: string; price: number; image_url: string | null; unit: string };
-  product_variants: { id: string; label: string; price: number } | null;
+  products: { id: string; name: string; price: number; image_url: string | null; unit: string; sku: string | null };
+  product_variants: { id: string; label: string; price: number; sku: string | null } | null;
 };
 
 const indianStates = [
@@ -89,13 +89,13 @@ const Checkout = () => {
 
       if (buyNow) {
         setIsBuyNow(true);
-        const { data: product } = await supabase.from("products").select("id,name,price,image_url,unit")
+        const { data: product } = await supabase.from("products").select("id,name,price,image_url,unit,sku")
           .eq("id", buyNow.product_id).single();
         if (!product) { setCheckoutItems([]); setLoading(false); return; }
 
-        let variant: { id: string; label: string; price: number } | null = null;
+        let variant: { id: string; label: string; price: number; sku: string | null } | null = null;
         if (buyNow.variant_id) {
-          const { data: v } = await supabase.from("product_variants").select("id,label,price")
+          const { data: v } = await supabase.from("product_variants").select("id,label,price,sku")
             .eq("id", buyNow.variant_id).single();
           variant = v || null;
         }
@@ -179,6 +179,7 @@ const Checkout = () => {
       quantity: item.quantity,
       price: linePrice(item),
       variant_label: item.product_variants?.label ?? null,
+      sku: item.product_variants?.sku ?? item.products.sku ?? null,
     }));
 
     const { data, error: orderError } = await supabase.rpc("place_order_atomic", {

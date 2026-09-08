@@ -7,18 +7,18 @@ type Product = {
   id: string; name: string; slug: string; description: string | null;
   price: number; mrp: number; image_url: string | null; stock: number;
   unit: string; weight: string | null; category_id: string | null; is_active: boolean;
-  catalog_type: string; moq: number | null;
+  catalog_type: string; moq: number | null; sku: string | null;
 };
 
 type Category = { id: string; name: string; slug: string };
 
-type VariantForm = { id?: string; label: string; price: string; mrp: string; stock: string };
+type VariantForm = { id?: string; label: string; price: string; mrp: string; stock: string; sku: string };
 
-const emptyVariant: VariantForm = { label: "", price: "", mrp: "", stock: "" };
+const emptyVariant: VariantForm = { label: "", price: "", mrp: "", stock: "", sku: "" };
 
 const emptyForm = {
   name: "", slug: "", description: "", price: "", mrp: "", stock: "", unit: "kg", weight: "", category_id: "", image_url: "", is_active: true,
-  catalog_type: "retail", moq: "",
+  catalog_type: "retail", moq: "", sku: "",
 };
 
 const AdminProducts = () => {
@@ -104,6 +104,7 @@ const AdminProducts = () => {
       is_active: form.is_active,
       catalog_type: form.catalog_type,
       moq: form.moq ? Number(form.moq) : null,
+      sku: form.sku.trim() || null,
     };
 
     let productId = editing;
@@ -149,6 +150,7 @@ const AdminProducts = () => {
         mrp: Number(v.mrp) || Number(v.price) || 0,
         stock: Number(v.stock) || 0,
         sort_order: i,
+        sku: v.sku.trim() || null,
       };
       const { error } = v.id
         ? await supabase.from("product_variants").update(row).eq("id", v.id)
@@ -164,10 +166,10 @@ const AdminProducts = () => {
       price: String(p.price), mrp: String(p.mrp), stock: String(p.stock),
       unit: p.unit, weight: p.weight || "", category_id: p.category_id || "",
       image_url: p.image_url || "", is_active: p.is_active,
-      catalog_type: p.catalog_type, moq: p.moq ? String(p.moq) : "",
+      catalog_type: p.catalog_type, moq: p.moq ? String(p.moq) : "", sku: p.sku || "",
     });
     const { data } = await supabase.from("product_variants").select("*").eq("product_id", p.id).order("sort_order");
-    setVariants((data || []).map((v) => ({ id: v.id, label: v.label, price: String(v.price), mrp: String(v.mrp), stock: String(v.stock) })));
+    setVariants((data || []).map((v) => ({ id: v.id, label: v.label, price: String(v.price), mrp: String(v.mrp), stock: String(v.stock), sku: v.sku || "" })));
     const { data: images } = await supabase.from("product_images").select("id,url").eq("product_id", p.id).order("sort_order");
     setGalleryImages(images || []);
     setEditing(p.id);
@@ -206,6 +208,11 @@ const AdminProducts = () => {
             <div>
               <label className="block text-sm font-medium mb-1">Slug</label>
               <input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })}
+                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">SKU</label>
+              <input value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} placeholder="e.g. TUR-500G"
                 className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
             </div>
             <div>
@@ -312,7 +319,7 @@ const AdminProducts = () => {
               {variants.length > 0 && (
                 <div className="space-y-2">
                   {variants.map((v, i) => (
-                    <div key={i} className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-2 items-center">
+                    <div key={i} className="grid grid-cols-[1fr_auto_auto_auto_auto_auto] gap-2 items-center">
                       <input value={v.label} onChange={(e) => setVariants(variants.map((x, j) => j === i ? { ...x, label: e.target.value } : x))}
                         placeholder="Label (e.g. 500g)"
                         className="rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
@@ -322,6 +329,8 @@ const AdminProducts = () => {
                         placeholder="MRP" className="w-24 rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
                       <input type="number" value={v.stock} onChange={(e) => setVariants(variants.map((x, j) => j === i ? { ...x, stock: e.target.value } : x))}
                         placeholder="Stock" className="w-20 rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
+                      <input value={v.sku} onChange={(e) => setVariants(variants.map((x, j) => j === i ? { ...x, sku: e.target.value } : x))}
+                        placeholder="SKU" className="w-28 rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
                       <button type="button" onClick={() => setVariants(variants.filter((_, j) => j !== i))}
                         className="p-2 text-muted-foreground hover:text-destructive"><X className="h-4 w-4" /></button>
                     </div>
@@ -364,6 +373,7 @@ const AdminProducts = () => {
                           {p.weight}
                           {variantCounts[p.id] > 0 && <span className="ml-1 text-secondary font-medium">· {variantCounts[p.id]} variants</span>}
                         </p>
+                        {p.sku && <p className="text-xs text-muted-foreground font-mono">SKU: {p.sku}</p>}
                       </div>
                     </div>
                   </td>

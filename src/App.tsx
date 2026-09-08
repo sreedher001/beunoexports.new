@@ -32,6 +32,7 @@ import AdminUsers from "./pages/admin/AdminUsers";
 import AdminCoupons from "./pages/admin/AdminCoupons";
 import BulkUpload from "./pages/admin/BulkUpload";
 import AdminSeo from "./pages/admin/AdminSeo";
+import PrintInvoice from "./pages/admin/PrintInvoice";
 import SEOHead from "@/components/SEOHead";
 
 const queryClient = new QueryClient();
@@ -54,6 +55,7 @@ const App = () => (
             <Route path="/admin/coupons" element={<AdminLayout><AdminCoupons /></AdminLayout>} />
             <Route path="/admin/bulk-upload" element={<AdminLayout><BulkUpload /></AdminLayout>} />
             <Route path="/admin/seo" element={<AdminLayout><AdminSeo /></AdminLayout>} />
+            <Route path="/admin/print-invoice/:orderId" element={<PrintInvoice />} />
 
             {/* Public routes with Layout */}
             <Route path="/" element={<Layout><Index /></Layout>} />

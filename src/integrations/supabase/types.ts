@@ -91,6 +91,7 @@ export type Database = {
           product_name: string
           quantity: number
           variant_label: string | null
+          sku: string | null
         }
         Insert: {
           created_at?: string
@@ -102,6 +103,7 @@ export type Database = {
           product_name: string
           quantity?: number
           variant_label?: string | null
+          sku?: string | null
         }
         Update: {
           created_at?: string
@@ -113,6 +115,7 @@ export type Database = {
           product_name?: string
           quantity?: number
           variant_label?: string | null
+          sku?: string | null
         }
         Relationships: [
           {
@@ -363,6 +366,7 @@ export type Database = {
           mrp: number
           name: string
           price: number
+          sku: string | null
           slug: string
           stock: number
           unit: string
@@ -381,6 +385,7 @@ export type Database = {
           mrp?: number
           name: string
           price?: number
+          sku?: string | null
           slug: string
           stock?: number
           unit?: string
@@ -399,6 +404,7 @@ export type Database = {
           mrp?: number
           name?: string
           price?: number
+          sku?: string | null
           slug?: string
           stock?: number
           unit?: string
@@ -423,6 +429,7 @@ export type Database = {
           mrp: number
           price: number
           product_id: string
+          sku: string | null
           sort_order: number
           stock: number
           updated_at: string
@@ -434,6 +441,7 @@ export type Database = {
           mrp?: number
           price?: number
           product_id: string
+          sku?: string | null
           sort_order?: number
           stock?: number
           updated_at?: string
@@ -445,6 +453,7 @@ export type Database = {
           mrp?: number
           price?: number
           product_id?: string
+          sku?: string | null
           sort_order?: number
           stock?: number
           updated_at?: string

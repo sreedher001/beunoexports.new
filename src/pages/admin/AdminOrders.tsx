@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Printer } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
 const statusOptions = ["pending", "confirmed", "shipped", "delivered", "cancelled"];
@@ -17,6 +19,8 @@ const AdminOrders = () => {
   const [selectedOrder, setSelectedOrder] = useState<Tables<"orders"> | null>(null);
   const [orderItems, setOrderItems] = useState<Tables<"order_items">[]>([]);
   const [filter, setFilter] = useState("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
   const fetchOrders = async () => {
     const { data } = await supabase.from("orders").select("*").order("created_at", { ascending: false });
@@ -38,7 +42,14 @@ const AdminOrders = () => {
     if (selectedOrder?.id === orderId) setSelectedOrder({ ...selectedOrder, status });
   };
 
-  const filtered = filter === "all" ? orders : orders.filter((o) => o.status === filter);
+  const filtered = orders.filter((o) => {
+    const matchStatus = filter === "all" || o.status === filter;
+    const orderDate = o.created_at.slice(0, 10);
+    const matchFrom = !dateFrom || orderDate >= dateFrom;
+    const matchTo = !dateTo || orderDate <= dateTo;
+    return matchStatus && matchFrom && matchTo;
+  });
+  const filteredRevenue = filtered.reduce((sum, o) => sum + Number(o.total_amount), 0);
 
   return (
     <div>
@@ -51,6 +62,29 @@ const AdminOrders = () => {
             {s}
           </button>
         ))}
+      </div>
+
+      <div className="flex flex-wrap items-end gap-3 mb-4 rounded-xl border border-border bg-card p-4">
+        <div>
+          <label className="block text-xs font-medium mb-1 text-muted-foreground">From</label>
+          <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
+            className="rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
+        </div>
+        <div>
+          <label className="block text-xs font-medium mb-1 text-muted-foreground">To</label>
+          <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
+            className="rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
+        </div>
+        {(dateFrom || dateTo) && (
+          <button onClick={() => { setDateFrom(""); setDateTo(""); }}
+            className="rounded-lg border border-border px-3 py-2 text-xs font-semibold text-muted-foreground hover:bg-muted">
+            Clear dates
+          </button>
+        )}
+        <div className="ml-auto text-right">
+          <p className="text-xs text-muted-foreground">{filtered.length} order{filtered.length !== 1 ? "s" : ""} · Revenue</p>
+          <p className="text-lg font-bold">₹{filteredRevenue.toLocaleString("en-IN")}</p>
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -78,7 +112,13 @@ const AdminOrders = () => {
 
         {selectedOrder && (
           <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-            <h3 className="font-semibold mb-4">Order Details — {selectedOrder.order_number}</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold">Order Details — {selectedOrder.order_number}</h3>
+              <Link to={`/admin/print-invoice/${selectedOrder.id}`} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted">
+                <Printer className="h-3.5 w-3.5" /> Print Bill
+              </Link>
+            </div>
             <div className="space-y-2 text-sm mb-4">
               <p><strong>Customer:</strong> {selectedOrder.full_name}</p>
               <p><strong>Phone:</strong> {selectedOrder.phone}</p>
@@ -106,7 +146,7 @@ const AdminOrders = () => {
                   {item.product_image && <img src={item.product_image} alt="" className="h-10 w-10 rounded object-cover" />}
                   <div className="flex-1">
                     <p className="font-medium">{item.product_name}{item.variant_label ? ` (${item.variant_label})` : ""}</p>
-                    <p className="text-xs text-muted-foreground">Qty: {item.quantity} × ₹{item.price}</p>
+                    <p className="text-xs text-muted-foreground">Qty: {item.quantity} × ₹{item.price}{item.sku ? ` · SKU: ${item.sku}` : ""}</p>
                   </div>
                   <p className="font-semibold">₹{item.price * item.quantity}</p>
                 </div>
