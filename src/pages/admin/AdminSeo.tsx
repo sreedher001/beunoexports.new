@@ -15,6 +15,8 @@ type Settings = {
   default_og_image: string | null;
   cod_enabled: boolean;
   online_payment_enabled: boolean;
+  runner_enabled: boolean;
+  runner_text: string | null;
 };
 
 const empty: Settings = {
@@ -22,6 +24,7 @@ const empty: Settings = {
   ga_measurement_id: "", meta_pixel_id: "", search_console_verification: "",
   default_meta_title: "", default_meta_description: "", default_og_image: "",
   cod_enabled: true, online_payment_enabled: true,
+  runner_enabled: false, runner_text: "",
 };
 
 const Field = ({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) => (
@@ -64,6 +67,8 @@ const AdminSeo = () => {
       default_og_image: settings.default_og_image || null,
       cod_enabled: settings.cod_enabled,
       online_payment_enabled: settings.online_payment_enabled,
+      runner_enabled: settings.runner_enabled,
+      runner_text: settings.runner_text || null,
     }).eq("id", true);
     setSaving(false);
     if (error) toast.error("Failed to save settings");
@@ -75,6 +80,16 @@ const AdminSeo = () => {
   return (
     <div className="max-w-2xl">
       <h1 className="text-2xl font-bold mb-6">SEO & Site Settings</h1>
+
+      <div className="rounded-xl border border-border bg-card p-6 shadow-sm mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold">Announcement Runner</h3>
+          <Switch checked={settings.runner_enabled} onCheckedChange={(v) => setSettings({ ...settings, runner_enabled: v })} />
+        </div>
+        <p className="text-xs text-muted-foreground mb-3">A scrolling banner shown at the very top of every page, styled in your brand color.</p>
+        <input className={inputCls} value={settings.runner_text ?? ""} placeholder="e.g. Free shipping on orders above ₹500 — Limited time offer!"
+          onChange={(e) => setSettings({ ...settings, runner_text: e.target.value })} disabled={!settings.runner_enabled} />
+      </div>
 
       <div className="rounded-xl border border-border bg-card p-6 shadow-sm mb-6">
         <h3 className="font-semibold mb-4">Payment Methods</h3>

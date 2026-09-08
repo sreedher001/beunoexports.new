@@ -226,6 +226,8 @@ export type Database = {
           default_og_image: string | null
           cod_enabled: boolean
           online_payment_enabled: boolean
+          runner_enabled: boolean
+          runner_text: string | null
           updated_at: string
         }
         Insert: {
@@ -241,6 +243,8 @@ export type Database = {
           default_og_image?: string | null
           cod_enabled?: boolean
           online_payment_enabled?: boolean
+          runner_enabled?: boolean
+          runner_text?: string | null
           updated_at?: string
         }
         Update: {
@@ -256,6 +260,8 @@ export type Database = {
           default_og_image?: string | null
           cod_enabled?: boolean
           online_payment_enabled?: boolean
+          runner_enabled?: boolean
+          runner_text?: string | null
           updated_at?: string
         }
         Relationships: []
