@@ -68,12 +68,12 @@ const Cart = () => {
           </div>
         ) : (
           <div className="grid gap-8 lg:grid-cols-3">
-            <div className="lg:col-span-2 space-y-4">
+            <div className="min-w-0 lg:col-span-2 space-y-4">
               {items.map((item) => (
                 <div key={item.key} className="flex gap-4 rounded-xl border border-border bg-card p-4 shadow-sm">
                   <Link to={`/product/${item.product.slug}`} className="shrink-0">
                     <img src={item.product.image_url || "/placeholder.svg"} alt={item.product.name}
-                      className="h-24 w-24 rounded-lg object-cover" />
+                      className="h-20 w-20 sm:h-24 sm:w-24 shrink-0 rounded-lg object-cover" />
                   </Link>
                   <div className="flex-1 min-w-0">
                     <Link to={`/product/${item.product.slug}`}>
@@ -86,7 +86,7 @@ const Cart = () => {
                         <span className="text-xs text-muted-foreground line-through">₹{lineMrp(item)}</span>
                       )}
                     </div>
-                    <div className="flex items-center gap-3 mt-3">
+                    <div className="flex flex-wrap items-center gap-3 mt-3">
                       <div className="flex items-center border border-border rounded">
                         <button onClick={() => updateQuantity(item, item.quantity - 1)} className="px-2 py-1 hover:bg-muted"><Minus className="h-3 w-3" /></button>
                         <span className="px-3 py-1 text-sm font-semibold">{item.quantity}</span>
@@ -97,11 +97,11 @@ const Cart = () => {
                       </button>
                     </div>
                   </div>
-                  <p className="font-bold text-sm whitespace-nowrap">₹{linePrice(item) * item.quantity}</p>
+                  <p className="font-bold text-sm whitespace-nowrap shrink-0">₹{linePrice(item) * item.quantity}</p>
                 </div>
               ))}
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="rounded-xl border border-border bg-card p-6 shadow-sm sticky top-24">
                 <h3 className="font-semibold mb-4">Order Summary</h3>
 
@@ -116,7 +116,7 @@ const Cart = () => {
                       <div className="flex gap-2">
                         <input value={couponInput} onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
                           placeholder="Coupon code"
-                          className="flex-1 rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
+                          className="min-w-0 flex-1 rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
                         <button type="button" onClick={applyCoupon} disabled={couponApplying || !couponInput.trim()}
                           className="rounded-lg border border-border px-4 py-2 text-sm font-semibold hover:bg-muted disabled:opacity-50">
                           {couponApplying ? "..." : "Apply"}

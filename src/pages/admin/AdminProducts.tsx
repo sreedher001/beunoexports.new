@@ -185,7 +185,7 @@ const AdminProducts = () => {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <h1 className="text-2xl font-bold">Products ({products.length})</h1>
         <button onClick={() => { setShowForm(true); setEditing(null); setForm(emptyForm); setVariants([]); setGalleryImages([]); }}
           className="flex items-center gap-1 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
@@ -319,20 +319,20 @@ const AdminProducts = () => {
               {variants.length > 0 && (
                 <div className="space-y-2">
                   {variants.map((v, i) => (
-                    <div key={i} className="grid grid-cols-[1fr_auto_auto_auto_auto_auto] gap-2 items-center">
+                    <div key={i} className="grid grid-cols-2 gap-2 items-center rounded-lg border border-border p-3 sm:grid-cols-[1fr_auto_auto_auto_auto_auto] sm:border-0 sm:p-0">
                       <input value={v.label} onChange={(e) => setVariants(variants.map((x, j) => j === i ? { ...x, label: e.target.value } : x))}
                         placeholder="Label (e.g. 500g)" aria-label={`Variant ${i + 1} label`}
-                        className="rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
+                        className="col-span-2 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary sm:col-span-1" />
                       <input type="number" value={v.price} onChange={(e) => setVariants(variants.map((x, j) => j === i ? { ...x, price: e.target.value } : x))}
-                        placeholder="Price" aria-label={`Variant ${i + 1} price`} className="w-24 rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
+                        placeholder="Price" aria-label={`Variant ${i + 1} price`} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary sm:w-24" />
                       <input type="number" value={v.mrp} onChange={(e) => setVariants(variants.map((x, j) => j === i ? { ...x, mrp: e.target.value } : x))}
-                        placeholder="MRP" aria-label={`Variant ${i + 1} MRP`} className="w-24 rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
+                        placeholder="MRP" aria-label={`Variant ${i + 1} MRP`} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary sm:w-24" />
                       <input type="number" value={v.stock} onChange={(e) => setVariants(variants.map((x, j) => j === i ? { ...x, stock: e.target.value } : x))}
-                        placeholder="Stock" aria-label={`Variant ${i + 1} stock`} className="w-20 rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
+                        placeholder="Stock" aria-label={`Variant ${i + 1} stock`} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary sm:w-20" />
                       <input value={v.sku} onChange={(e) => setVariants(variants.map((x, j) => j === i ? { ...x, sku: e.target.value } : x))}
-                        placeholder="SKU" aria-label={`Variant ${i + 1} SKU`} className="w-28 rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
+                        placeholder="SKU" aria-label={`Variant ${i + 1} SKU`} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary sm:w-28" />
                       <button type="button" onClick={() => setVariants(variants.filter((_, j) => j !== i))} aria-label={`Remove variant ${i + 1}`}
-                        className="p-2 text-muted-foreground hover:text-destructive"><X className="h-4 w-4" /></button>
+                        className="justify-self-end p-2 text-muted-foreground hover:text-destructive sm:justify-self-auto"><X className="h-4 w-4" /></button>
                     </div>
                   ))}
                 </div>

@@ -130,7 +130,7 @@ const AdminOrders = () => {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+        <div className="min-w-0 rounded-xl border border-border bg-card shadow-sm overflow-hidden">
           <div className="divide-y divide-border max-h-[600px] overflow-y-auto">
             {filtered.map((o) => (
               <button key={o.id} onClick={() => viewOrder(o)}
@@ -153,7 +153,7 @@ const AdminOrders = () => {
         </div>
 
         {selectedOrder && (
-          <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+          <div className="min-w-0 rounded-xl border border-border bg-card p-6 shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold">Order Details — {selectedOrder.order_number}</h3>
               <Link to={`/admin/print-invoice/${selectedOrder.id}`} target="_blank" rel="noopener noreferrer"
@@ -185,12 +185,12 @@ const AdminOrders = () => {
             <div className="space-y-2">
               {orderItems.map((item) => (
                 <div key={item.id} className="flex gap-3 p-2 rounded bg-muted text-sm">
-                  {item.product_image && <img src={item.product_image} alt={item.product_name} className="h-10 w-10 rounded object-cover" />}
-                  <div className="flex-1">
-                    <p className="font-medium">{item.product_name}{item.variant_label ? ` (${item.variant_label})` : ""}</p>
-                    <p className="text-xs text-muted-foreground">Qty: {item.quantity} × ₹{item.price}{item.sku ? ` · SKU: ${item.sku}` : ""}</p>
+                  {item.product_image && <img src={item.product_image} alt={item.product_name} className="h-10 w-10 rounded object-cover shrink-0" />}
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium truncate">{item.product_name}{item.variant_label ? ` (${item.variant_label})` : ""}</p>
+                    <p className="text-xs text-muted-foreground truncate">Qty: {item.quantity} × ₹{item.price}{item.sku ? ` · SKU: ${item.sku}` : ""}</p>
                   </div>
-                  <p className="font-semibold">₹{item.price * item.quantity}</p>
+                  <p className="font-semibold shrink-0">₹{item.price * item.quantity}</p>
                 </div>
               ))}
             </div>

@@ -32,7 +32,7 @@ const AdminMessages = () => {
     <div>
       <h1 className="text-2xl font-bold mb-6">Messages</h1>
 
-      <div className="flex gap-2 mb-6">
+      <div className="flex flex-wrap gap-2 mb-6">
         <button onClick={() => setTab("contact")}
           className={`rounded-lg px-4 py-2 text-sm font-semibold ${tab === "contact" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
           Contact Messages {unreadCount > 0 && `(${unreadCount})`}
