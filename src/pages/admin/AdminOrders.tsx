@@ -52,15 +52,28 @@ const AdminOrders = () => {
   });
   const filteredRevenue = filtered.reduce((sum, o) => sum + Number(o.total_amount), 0);
 
-  const exportCsv = () => {
-    const headers = ["Order Number", "Date", "Customer", "Phone", "Email", "Status", "Payment Method", "Payment Status", "Total"];
+  const exportCsv = async () => {
+    const orderIds = filtered.map((o) => o.id);
+    const { data: allItems } = await supabase.from("order_items").select("order_id,product_name,variant_label,quantity").in("order_id", orderIds);
+    const itemsByOrder = new Map<string, string>();
+    (allItems || []).forEach((item) => {
+      const label = `${item.product_name}${item.variant_label ? ` (${item.variant_label})` : ""} x${item.quantity}`;
+      itemsByOrder.set(item.order_id, [itemsByOrder.get(item.order_id), label].filter(Boolean).join("; "));
+    });
+
+    const headers = ["Order Number", "Date", "Customer", "Phone", "Email", "Items", "Status", "Payment Method", "Payment Status", "Total"];
     const csvEscape = (v: string) => `"${v.replace(/"/g, '""')}"`;
+    // Excel auto-detects long all-digit fields (like phone numbers) as numbers and
+    // renders them in scientific notation. Wrapping in ="..." forces it to keep the
+    // literal text instead — a standard CSV-for-Excel trick.
+    const asText = (v: string) => `="${v}"`;
     const rows = filtered.map((o) => [
       o.order_number,
       new Date(o.created_at).toLocaleDateString("en-IN"),
       o.full_name,
-      o.phone,
+      asText(o.phone),
       o.email,
+      itemsByOrder.get(o.id) || "",
       o.status,
       o.payment_method,
       o.payment_status,
