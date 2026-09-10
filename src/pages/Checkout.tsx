@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCart } from "@/hooks/useCart";
 import { getBuyNowItem, clearBuyNowItem } from "@/lib/utils";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -53,9 +54,11 @@ const Field = ({ name, label, type = "text", placeholder = "", form, errors, onC
 const Checkout = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [checkoutItems, setCheckoutItems] = useState<CheckoutItem[]>([]);
-  const [isBuyNow, setIsBuyNow] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const { items: cartItems, loading: cartLoading, clearCart } = useCart();
+  const [buyNowItem] = useState(() => getBuyNowItem());
+  const isBuyNow = !!buyNowItem;
+  const [buyNowCheckoutItem, setBuyNowCheckoutItem] = useState<CheckoutItem | null>(null);
+  const [buyNowLoading, setBuyNowLoading] = useState(isBuyNow);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [form, setForm] = useState<FormState>({
@@ -96,42 +99,42 @@ const Checkout = () => {
   }, [siteSettings, paymentMethod]);
 
   useEffect(() => {
+    if (!buyNowItem) return;
     const load = async () => {
-      const buyNow = getBuyNowItem();
+      const { data: product } = await supabase.from("products").select("id,name,price,image_url,unit,sku")
+        .eq("id", buyNowItem.product_id).single();
+      if (!product) { setBuyNowCheckoutItem(null); setBuyNowLoading(false); return; }
 
-      if (buyNow) {
-        setIsBuyNow(true);
-        const { data: product } = await supabase.from("products").select("id,name,price,image_url,unit,sku")
-          .eq("id", buyNow.product_id).single();
-        if (!product) { setCheckoutItems([]); setLoading(false); return; }
-
-        let variant: { id: string; label: string; price: number; sku: string | null } | null = null;
-        if (buyNow.variant_id) {
-          const { data: v } = await supabase.from("product_variants").select("id,label,price,sku")
-            .eq("id", buyNow.variant_id).single();
-          variant = v || null;
-        }
-
-        setCheckoutItems([{
-          id: `buynow-${product.id}-${buyNow.variant_id ?? "base"}`,
-          quantity: buyNow.quantity,
-          product_id: product.id,
-          products: product,
-          product_variants: variant,
-        }]);
-        setLoading(false);
-      } else if (user) {
-        setIsBuyNow(false);
-        const { data } = await supabase.from("cart_items").select("*, products(*), product_variants(*)").eq("user_id", user.id);
-        setCheckoutItems((data as unknown as CheckoutItem[]) || []);
-        setLoading(false);
-      } else {
-        setCheckoutItems([]);
-        setLoading(false);
+      let variant: { id: string; label: string; price: number; sku: string | null } | null = null;
+      if (buyNowItem.variant_id) {
+        const { data: v } = await supabase.from("product_variants").select("id,label,price,sku")
+          .eq("id", buyNowItem.variant_id).single();
+        variant = v || null;
       }
+
+      setBuyNowCheckoutItem({
+        id: `buynow-${product.id}-${buyNowItem.variant_id ?? "base"}`,
+        quantity: buyNowItem.quantity,
+        product_id: product.id,
+        products: product,
+        product_variants: variant,
+      });
+      setBuyNowLoading(false);
     };
     load();
-  }, [user]);
+  }, [buyNowItem]);
+
+  const checkoutItems: CheckoutItem[] = isBuyNow
+    ? (buyNowCheckoutItem ? [buyNowCheckoutItem] : [])
+    : cartItems.map((line) => ({
+        id: line.key,
+        quantity: line.quantity,
+        product_id: line.product_id,
+        products: { id: line.product.id, name: line.product.name, price: line.product.price, image_url: line.product.image_url, unit: line.product.unit, sku: line.product.sku },
+        product_variants: line.variant ? { id: line.variant.id, label: line.variant.label, price: line.variant.price, sku: line.variant.sku } : null,
+      }));
+
+  const loading = isBuyNow ? buyNowLoading : cartLoading;
 
   useEffect(() => {
     if (!user) return;
@@ -224,8 +227,8 @@ const Checkout = () => {
   const finalizeOrder = async (order: PlacedOrder) => {
     if (isBuyNow) {
       clearBuyNowItem();
-    } else if (user) {
-      await supabase.from("cart_items").delete().eq("user_id", user.id);
+    } else {
+      await clearCart();
     }
 
     if (!user) {
