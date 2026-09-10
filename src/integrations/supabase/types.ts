@@ -91,6 +91,7 @@ export type Database = {
           product_name: string
           quantity: number
           variant_label: string | null
+          variant_id: string | null
           sku: string | null
         }
         Insert: {
@@ -103,6 +104,7 @@ export type Database = {
           product_name: string
           quantity?: number
           variant_label?: string | null
+          variant_id?: string | null
           sku?: string | null
         }
         Update: {
@@ -115,6 +117,7 @@ export type Database = {
           product_name?: string
           quantity?: number
           variant_label?: string | null
+          variant_id?: string | null
           sku?: string | null
         }
         Relationships: [
@@ -130,6 +133,13 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
             referencedColumns: ["id"]
           },
         ]
@@ -159,6 +169,7 @@ export type Database = {
           total_amount: number
           updated_at: string
           user_id: string | null
+          guest_access_token: string
         }
         Insert: {
           address: string
@@ -184,6 +195,7 @@ export type Database = {
           total_amount?: number
           updated_at?: string
           user_id?: string | null
+          guest_access_token?: string
         }
         Update: {
           address?: string
@@ -209,6 +221,7 @@ export type Database = {
           total_amount?: number
           updated_at?: string
           user_id?: string | null
+          guest_access_token?: string
         }
         Relationships: []
       }
@@ -228,6 +241,8 @@ export type Database = {
           online_payment_enabled: boolean
           runner_enabled: boolean
           runner_text: string | null
+          contact_notification_email: string | null
+          low_stock_threshold: number
           updated_at: string
         }
         Insert: {
@@ -245,6 +260,8 @@ export type Database = {
           online_payment_enabled?: boolean
           runner_enabled?: boolean
           runner_text?: string | null
+          contact_notification_email?: string | null
+          low_stock_threshold?: number
           updated_at?: string
         }
         Update: {
@@ -262,7 +279,57 @@ export type Database = {
           online_payment_enabled?: boolean
           runner_enabled?: boolean
           runner_text?: string | null
+          contact_notification_email?: string | null
+          low_stock_threshold?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      contact_messages: {
+        Row: {
+          id: string
+          name: string
+          email: string
+          phone: string | null
+          message: string
+          status: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          email: string
+          phone?: string | null
+          message: string
+          status?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          email?: string
+          phone?: string | null
+          message?: string
+          status?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
+      newsletter_subscribers: {
+        Row: {
+          id: string
+          email: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          email: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          email?: string
+          created_at?: string
         }
         Relationships: []
       }
@@ -615,7 +682,22 @@ export type Database = {
         Returns: {
           order_id: string
           order_number: string
+          guest_access_token: string
         }[]
+      }
+      update_order_status: {
+        Args: {
+          _order_id: string
+          _status: string
+        }
+        Returns: undefined
+      }
+      get_guest_order: {
+        Args: {
+          _order_id: string
+          _token: string
+        }
+        Returns: Json
       }
     }
     Enums: {

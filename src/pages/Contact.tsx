@@ -2,6 +2,7 @@ import { useState } from "react";
 import ScrollReveal from "@/components/ScrollReveal";
 import { Phone, Mail, MapPin, Send } from "lucide-react";
 import { z } from "zod";
+import { supabase } from "@/integrations/supabase/client";
 
 const contactSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100),
@@ -31,25 +32,30 @@ const Contact = () => {
 
   setErrors({});
 
-  try {
-    await fetch("https://script.google.com/macros/s/AKfycbyw01eP6HiYhqMYujrhtWPhhmyL3SXaWPIPVmErJA1yKvORJ3lz2pzXpD4dInUmtih6gA/exec", {
-      method: "POST",
-      body: JSON.stringify(form),
-    });
+  const { error } = await supabase.from("contact_messages").insert({
+    name: form.name,
+    email: form.email,
+    phone: form.phone,
+    message: form.message,
+  });
 
-    setSubmitted(true);
-
-    // reset form after submit
-    setForm({
-      name: "",
-      email: "",
-      phone: "",
-      message: "",
-    });
-
-  } catch (error) {
-    alert("Submission failed ❌");
+  if (error) {
+    setErrors({ message: "Failed to send your message. Please try again or contact us on WhatsApp." });
+    return;
   }
+
+  setSubmitted(true);
+
+  // Best-effort admin notification email — never blocks the success state above.
+  supabase.functions.invoke("send-contact-email", { body: form }).catch(() => {});
+
+  // reset form after submit
+  setForm({
+    name: "",
+    email: "",
+    phone: "",
+    message: "",
+  });
 };
 
   return (
@@ -157,21 +163,16 @@ const Contact = () => {
         </div>
       </section>
 
-      {/* Map placeholder */}
+      {/* Location */}
       <section className="warm-bg">
         <div className="container mx-auto px-4 py-12 lg:px-8">
           <ScrollReveal>
-            <div className="rounded-xl overflow-hidden shadow-md">
-              <iframe
-                title="BuenoExports Location"
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3916.5!2d80.2!3d13.0!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMTPCsDAzJzAwLjAiTiA4MMKwMTInMDAuMCJF!5e0!3m2!1sen!2sin!4v1"
-                width="100%"
-                height="350"
-                style={{ border: 0 }}
-                allowFullScreen
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-              />
+            <div className="rounded-xl border border-border bg-card p-10 text-center shadow-md">
+              <MapPin className="h-8 w-8 text-secondary mx-auto mb-3" />
+              <p className="font-semibold">Our full address is coming soon.</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                In the meantime, reach us by phone, email, or WhatsApp above and we'll get back to you.
+              </p>
             </div>
           </ScrollReveal>
         </div>

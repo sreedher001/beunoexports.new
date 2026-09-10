@@ -30,6 +30,7 @@ import AdminProducts from "./pages/admin/AdminProducts";
 import AdminOrders from "./pages/admin/AdminOrders";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminCoupons from "./pages/admin/AdminCoupons";
+import AdminMessages from "./pages/admin/AdminMessages";
 import BulkUpload from "./pages/admin/BulkUpload";
 import AdminSeo from "./pages/admin/AdminSeo";
 import PrintInvoice from "./pages/admin/PrintInvoice";
@@ -53,6 +54,7 @@ const App = () => (
             <Route path="/admin/orders" element={<AdminLayout><AdminOrders /></AdminLayout>} />
             <Route path="/admin/users" element={<AdminLayout><AdminUsers /></AdminLayout>} />
             <Route path="/admin/coupons" element={<AdminLayout><AdminCoupons /></AdminLayout>} />
+            <Route path="/admin/messages" element={<AdminLayout><AdminMessages /></AdminLayout>} />
             <Route path="/admin/bulk-upload" element={<AdminLayout><BulkUpload /></AdminLayout>} />
             <Route path="/admin/seo" element={<AdminLayout><AdminSeo /></AdminLayout>} />
             <Route path="/admin/print-invoice/:orderId" element={<PrintInvoice />} />

@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCatalogMode } from "@/contexts/CatalogModeContext";
+import { useWishlist } from "@/hooks/useWishlist";
 import { wholesaleEnquiryUrl } from "@/lib/utils";
 import { Search, Heart, ShoppingCart, Filter, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -23,6 +24,7 @@ type Product = {
   is_active: boolean;
   catalog_type: string;
   moq: number | null;
+  created_at: string;
 };
 
 type Category = { id: string; name: string; slug: string };
@@ -37,14 +39,21 @@ const Shop = () => {
   const [selectedCat, setSelectedCat] = useState<string>(searchParams.get("category") || "all");
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
+  const [sortBy, setSortBy] = useState<"default" | "price-asc" | "price-desc" | "newest" | "name-asc">("default");
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 12;
   const [loading, setLoading] = useState(true);
-  const [wishlistIds, setWishlistIds] = useState<Set<string>>(new Set());
+  const { wishlistIds, toggle: toggleWishlist } = useWishlist();
   const [variantInfo, setVariantInfo] = useState<Record<string, { minPrice: number; minMrp: number }>>({});
 
   useEffect(() => {
     const cat = searchParams.get("category");
     if (cat) setSelectedCat(cat);
+    const q = searchParams.get("search");
+    if (q) setSearch(q);
   }, [searchParams]);
+
+  useEffect(() => { setPage(1); }, [search, selectedCat, minPrice, maxPrice, sortBy, mode]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -65,17 +74,6 @@ const Shop = () => {
     };
     fetchData();
   }, []);
-
-  useEffect(() => {
-    if (!user) return;
-    supabase
-      .from("wishlist_items")
-      .select("product_id")
-      .eq("user_id", user.id)
-      .then(({ data }) => {
-        setWishlistIds(new Set(data?.map((w) => w.product_id) || []));
-      });
-  }, [user]);
 
   const categoryIdBySlug = useMemo(() => {
     const map: Record<string, string> = {};
@@ -99,6 +97,21 @@ const Shop = () => {
     });
   }, [products, search, selectedCat, categoryIdBySlug, mode, minPrice, maxPrice, variantInfo]);
 
+  const sorted = useMemo(() => {
+    const effectivePrice = (p: Product) => variantInfo[p.id]?.minPrice ?? p.price;
+    const arr = [...filtered];
+    switch (sortBy) {
+      case "price-asc": return arr.sort((a, b) => effectivePrice(a) - effectivePrice(b));
+      case "price-desc": return arr.sort((a, b) => effectivePrice(b) - effectivePrice(a));
+      case "newest": return arr.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      case "name-asc": return arr.sort((a, b) => a.name.localeCompare(b.name));
+      default: return arr;
+    }
+  }, [filtered, sortBy, variantInfo]);
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const paged = useMemo(() => sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), [sorted, page]);
+
   const addToCart = async (productId: string) => {
     if (!user) { toast.error("Please login to add to cart"); return; }
     const product = products.find((p) => p.id === productId);
@@ -114,19 +127,6 @@ const Shop = () => {
     }
     if (error) toast.error("Failed to add to cart");
     else toast.success("Added to cart!");
-  };
-
-  const toggleWishlist = async (productId: string) => {
-    if (!user) { toast.error("Please login to use wishlist"); return; }
-    if (wishlistIds.has(productId)) {
-      await supabase.from("wishlist_items").delete().eq("user_id", user.id).eq("product_id", productId);
-      setWishlistIds((prev) => { const n = new Set(prev); n.delete(productId); return n; });
-      toast.success("Removed from wishlist");
-    } else {
-      await supabase.from("wishlist_items").insert({ user_id: user.id, product_id: productId });
-      setWishlistIds((prev) => new Set(prev).add(productId));
-      toast.success("Added to wishlist!");
-    }
   };
 
   const discount = (mrp: number, price: number) => mrp > price ? Math.round(((mrp - price) / mrp) * 100) : 0;
@@ -180,6 +180,17 @@ const Shop = () => {
               <input type="number" min={0} placeholder="Max ₹" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)}
                 className="w-24 rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-secondary" />
             </div>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+              className="rounded-lg border border-input bg-background px-4 py-2.5 text-sm outline-none focus:border-secondary"
+            >
+              <option value="default">Sort: Featured</option>
+              <option value="newest">Newest</option>
+              <option value="price-asc">Price: Low to High</option>
+              <option value="price-desc">Price: High to Low</option>
+              <option value="name-asc">Name: A-Z</option>
+            </select>
           </div>
 
           {loading ? (
@@ -192,13 +203,14 @@ const Shop = () => {
                 </div>
               ))}
             </div>
-          ) : filtered.length === 0 ? (
+          ) : sorted.length === 0 ? (
             <div className="text-center py-16">
               <p className="text-lg text-muted-foreground">No products found</p>
             </div>
           ) : (
+            <>
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {filtered.map((p) => {
+              {paged.map((p) => {
                 const variant = variantInfo[p.id];
                 const displayPrice = variant ? variant.minPrice : p.price;
                 const displayMrp = variant ? variant.minMrp : p.mrp;
@@ -282,6 +294,20 @@ const Shop = () => {
                 );
               })}
             </div>
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-10">
+                <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}
+                  className="rounded-lg border border-border px-4 py-2 text-sm font-semibold disabled:opacity-40 hover:bg-muted">
+                  Previous
+                </button>
+                <span className="text-sm text-muted-foreground px-2">Page {page} of {totalPages}</span>
+                <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+                  className="rounded-lg border border-border px-4 py-2 text-sm font-semibold disabled:opacity-40 hover:bg-muted">
+                  Next
+                </button>
+              </div>
+            )}
+            </>
           )}
         </div>
       </section>

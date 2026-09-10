@@ -5,6 +5,38 @@ import { toast } from "sonner";
 
 type Category = { id: string; name: string; slug: string };
 
+// Minimal RFC4180-ish CSV line parser: handles quoted fields (with embedded
+// commas/newlines escaped as "") which a plain split(",") breaks on.
+function parseCsv(text: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let field = "";
+  let inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQuotes) {
+      if (c === '"') {
+        if (text[i + 1] === '"') { field += '"'; i++; } else { inQuotes = false; }
+      } else {
+        field += c;
+      }
+    } else if (c === '"') {
+      inQuotes = true;
+    } else if (c === ",") {
+      row.push(field); field = "";
+    } else if (c === "\n" || c === "\r") {
+      if (c === "\r" && text[i + 1] === "\n") i++;
+      row.push(field); field = "";
+      if (row.some((f) => f.trim() !== "")) rows.push(row);
+      row = [];
+    } else {
+      field += c;
+    }
+  }
+  if (field !== "" || row.length > 0) { row.push(field); if (row.some((f) => f.trim() !== "")) rows.push(row); }
+  return rows;
+}
+
 const BulkUpload = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -15,8 +47,8 @@ const BulkUpload = () => {
   }, []);
 
   const downloadTemplate = () => {
-    const headers = "name,description,price,mrp,stock,unit,weight,category_slug,image_url,catalog_type,moq";
-    const example = "Premium Turmeric Powder,High curcumin content turmeric,250,299,100,kg,500g,turmeric,,retail,";
+    const headers = "name,description,price,mrp,stock,unit,weight,category_slug,image_url,catalog_type,moq,sku";
+    const example = "Premium Turmeric Powder,High curcumin content turmeric,250,299,100,kg,500g,turmeric,,retail,,TUR-001";
     const csv = headers + "\n" + example;
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -32,13 +64,13 @@ const BulkUpload = () => {
     setResults({ success: 0, failed: 0, errors: [] });
 
     const text = await file.text();
-    const lines = text.split("\n").filter((l) => l.trim());
-    const headers = lines[0].split(",").map((h) => h.trim().toLowerCase());
+    const rows = parseCsv(text);
+    const headers = (rows[0] || []).map((h) => h.trim().toLowerCase());
     const errors: string[] = [];
     let success = 0;
 
-    for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(",").map((v) => v.trim());
+    for (let i = 1; i < rows.length; i++) {
+      const values = rows[i].map((v) => v.trim());
       const row: Record<string, string> = {};
       headers.forEach((h, j) => { row[h] = values[j] || ""; });
 
@@ -47,12 +79,11 @@ const BulkUpload = () => {
         continue;
       }
 
-      const slug = row.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") + "-" + Date.now();
       const cat = categories.find((c) => c.slug === row.category_slug);
+      const sku = row.sku || null;
 
-      const { error } = await supabase.from("products").insert({
+      const productData = {
         name: row.name,
-        slug,
         description: row.description || null,
         price: Number(row.price) || 0,
         mrp: Number(row.mrp) || Number(row.price) || 0,
@@ -64,7 +95,19 @@ const BulkUpload = () => {
         is_active: true,
         catalog_type: row.catalog_type === "wholesale" ? "wholesale" : "retail",
         moq: row.moq ? Number(row.moq) || null : null,
-      });
+        sku,
+      };
+
+      // If this row's SKU matches an existing product, update it in place instead of
+      // always inserting a duplicate — lets the same template be used to restock/update.
+      const existing = sku ? await supabase.from("products").select("id").eq("sku", sku).maybeSingle() : { data: null };
+
+      const { error } = existing.data
+        ? await supabase.from("products").update(productData).eq("id", existing.data.id)
+        : await supabase.from("products").insert({
+            ...productData,
+            slug: row.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") + "-" + Date.now(),
+          });
 
       if (error) errors.push(`Row ${i + 1}: ${error.message}`);
       else success++;

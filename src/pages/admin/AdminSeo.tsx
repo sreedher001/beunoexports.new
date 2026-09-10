@@ -17,6 +17,8 @@ type Settings = {
   online_payment_enabled: boolean;
   runner_enabled: boolean;
   runner_text: string | null;
+  contact_notification_email: string | null;
+  low_stock_threshold: number;
 };
 
 const empty: Settings = {
@@ -25,6 +27,7 @@ const empty: Settings = {
   default_meta_title: "", default_meta_description: "", default_og_image: "",
   cod_enabled: true, online_payment_enabled: true,
   runner_enabled: false, runner_text: "",
+  contact_notification_email: "", low_stock_threshold: 5,
 };
 
 const Field = ({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) => (
@@ -69,6 +72,8 @@ const AdminSeo = () => {
       online_payment_enabled: settings.online_payment_enabled,
       runner_enabled: settings.runner_enabled,
       runner_text: settings.runner_text || null,
+      contact_notification_email: settings.contact_notification_email || null,
+      low_stock_threshold: Number(settings.low_stock_threshold) || 5,
     }).eq("id", true);
     setSaving(false);
     if (error) toast.error("Failed to save settings");
@@ -128,6 +133,20 @@ const AdminSeo = () => {
           <Field label="Tax (%)">
             <input type="number" className={inputCls} value={settings.tax_percent}
               onChange={(e) => setSettings({ ...settings, tax_percent: Number(e.target.value) })} />
+          </Field>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-border bg-card p-6 shadow-sm mb-6">
+        <h3 className="font-semibold mb-4">Notifications & Inventory</h3>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Contact Form Notification Email" hint="Where new Contact page submissions are emailed. Leave blank to disable email alerts (submissions still appear under Admin → Messages).">
+            <input type="email" className={inputCls} value={settings.contact_notification_email ?? ""}
+              onChange={(e) => setSettings({ ...settings, contact_notification_email: e.target.value })} placeholder="you@beunoexports.com" />
+          </Field>
+          <Field label="Low Stock Alert Threshold" hint="Products/variants at or below this stock level show up on the Dashboard">
+            <input type="number" min={0} className={inputCls} value={settings.low_stock_threshold}
+              onChange={(e) => setSettings({ ...settings, low_stock_threshold: Number(e.target.value) })} />
           </Field>
         </div>
       </div>

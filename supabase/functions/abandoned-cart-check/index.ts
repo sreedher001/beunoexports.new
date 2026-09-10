@@ -61,7 +61,7 @@ serve(async (req) => {
           method: "POST",
           headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
           body: JSON.stringify({
-            from: "orders@yourdomain.com",
+            from: "orders@beunoexports.com",
             to: email,
             subject: "You left something in your cart!",
             html: `<p>You still have ${items} waiting in your cart. Complete your order before stock runs out!</p>`,

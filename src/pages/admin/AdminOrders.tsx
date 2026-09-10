@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Printer } from "lucide-react";
+import { Printer, Download } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
 const statusOptions = ["pending", "confirmed", "shipped", "delivered", "cancelled"];
@@ -36,7 +36,8 @@ const AdminOrders = () => {
   };
 
   const updateStatus = async (orderId: string, status: string) => {
-    await supabase.from("orders").update({ status }).eq("id", orderId);
+    const { error } = await supabase.rpc("update_order_status", { _order_id: orderId, _status: status });
+    if (error) { toast.error(error.message || "Failed to update status"); return; }
     toast.success(`Status updated to ${status}`);
     fetchOrders();
     if (selectedOrder?.id === orderId) setSelectedOrder({ ...selectedOrder, status });
@@ -51,9 +52,37 @@ const AdminOrders = () => {
   });
   const filteredRevenue = filtered.reduce((sum, o) => sum + Number(o.total_amount), 0);
 
+  const exportCsv = () => {
+    const headers = ["Order Number", "Date", "Customer", "Phone", "Email", "Status", "Payment Method", "Payment Status", "Total"];
+    const csvEscape = (v: string) => `"${v.replace(/"/g, '""')}"`;
+    const rows = filtered.map((o) => [
+      o.order_number,
+      new Date(o.created_at).toLocaleDateString("en-IN"),
+      o.full_name,
+      o.phone,
+      o.email,
+      o.status,
+      o.payment_method,
+      o.payment_status,
+      String(o.total_amount),
+    ].map(csvEscape).join(","));
+    const csv = [headers.map(csvEscape).join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `orders-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Orders ({orders.length})</h1>
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+        <h1 className="text-2xl font-bold">Orders ({orders.length})</h1>
+        <button onClick={exportCsv} disabled={filtered.length === 0}
+          className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted disabled:opacity-50">
+          <Download className="h-3.5 w-3.5" /> Export CSV
+        </button>
+      </div>
 
       <div className="flex gap-2 mb-4 flex-wrap">
         {["all", ...statusOptions].map((s) => (

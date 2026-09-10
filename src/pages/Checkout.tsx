@@ -78,6 +78,19 @@ const Checkout = () => {
       .then(({ data }) => { if (data) setSiteSettings(data); });
   }, []);
 
+  // Pick up a coupon applied earlier on the Cart page and re-validate it here
+  // (subtotal may differ — e.g. Buy Now vs cart — so never trust the stored discount blindly).
+  useEffect(() => {
+    const stored = sessionStorage.getItem("appliedCoupon");
+    if (stored) {
+      try {
+        const { code } = JSON.parse(stored) as { code: string };
+        if (code) setCouponInput(code);
+      } catch { /* ignore malformed value */ }
+      sessionStorage.removeItem("appliedCoupon");
+    }
+  }, []);
+
   useEffect(() => {
     if (paymentMethod === "cod" && !siteSettings.cod_enabled && siteSettings.online_payment_enabled) setPaymentMethod("online");
     else if (paymentMethod === "online" && !siteSettings.online_payment_enabled && siteSettings.cod_enabled) setPaymentMethod("cod");
@@ -165,6 +178,14 @@ const Checkout = () => {
     setCouponError("");
   };
 
+  // Auto-apply the coupon carried over from Cart once we know the real subtotal.
+  useEffect(() => {
+    if (!loading && checkoutItems.length > 0 && couponInput && !appliedCoupon) {
+      applyCoupon();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, checkoutItems.length]);
+
   const placeOrder = async (
     asUser: User | null,
     payment?: { status: "paid"; razorpay_order_id: string; razorpay_payment_id: string }
@@ -213,6 +234,12 @@ const Checkout = () => {
       clearBuyNowItem();
     } else if (asUser) {
       await supabase.from("cart_items").delete().eq("user_id", asUser.id);
+    }
+
+    if (!asUser) {
+      try {
+        localStorage.setItem(`guest_order_${order.order_id}`, order.guest_access_token);
+      } catch { /* localStorage unavailable — guest just won't be able to reload the confirmation page */ }
     }
 
     if (appliedCoupon) await supabase.rpc("redeem_coupon", { _code: appliedCoupon.code });

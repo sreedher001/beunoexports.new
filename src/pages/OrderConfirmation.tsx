@@ -17,11 +17,32 @@ const OrderConfirmation = () => {
 
   useEffect(() => {
     if (navState?.order || !orderId) return;
-    supabase.from("orders").select("*").eq("id", orderId).single().then(({ data }) => {
-      if (!data) { setNotFound(true); return; }
-      setOrder(data);
-    });
-    supabase.from("order_items").select("*").eq("order_id", orderId).then(({ data }) => setItems(data || []));
+
+    const load = async () => {
+      const { data } = await supabase.from("orders").select("*").eq("id", orderId).single();
+      if (data) {
+        setOrder(data);
+        const { data: orderItems } = await supabase.from("order_items").select("*").eq("order_id", orderId);
+        setItems(orderItems || []);
+        return;
+      }
+
+      // RLS blocked it (guest / not the owner) — try the token saved at checkout time.
+      let token: string | null = null;
+      try { token = localStorage.getItem(`guest_order_${orderId}`); } catch { /* ignore */ }
+      if (token) {
+        const { data: guestData } = await supabase.rpc("get_guest_order", { _order_id: orderId, _token: token });
+        const result = guestData as { order: Tables<"orders">; items: ConfirmationItem[] } | null;
+        if (result?.order) {
+          setOrder(result.order);
+          setItems(result.items || []);
+          return;
+        }
+      }
+
+      setNotFound(true);
+    };
+    load();
   }, [orderId, navState]);
 
   if (notFound) return (

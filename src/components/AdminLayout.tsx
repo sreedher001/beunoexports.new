@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { LayoutDashboard, Package, ShoppingCart, Users, Upload, Tag, ArrowLeft, Search } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, Users, Upload, Tag, ArrowLeft, Search, Mail } from "lucide-react";
 
 const adminLinks = [
   { label: "Dashboard", to: "/admin", icon: LayoutDashboard },
@@ -9,6 +9,7 @@ const adminLinks = [
   { label: "Orders", to: "/admin/orders", icon: ShoppingCart },
   { label: "Users", to: "/admin/users", icon: Users },
   { label: "Coupons", to: "/admin/coupons", icon: Tag },
+  { label: "Messages", to: "/admin/messages", icon: Mail },
   { label: "Bulk Upload", to: "/admin/bulk-upload", icon: Upload },
   { label: "SEO", to: "/admin/seo", icon: Search },
 ];

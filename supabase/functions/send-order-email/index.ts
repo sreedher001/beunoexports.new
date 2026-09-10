@@ -13,7 +13,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const FROM_EMAIL = "orders@yourdomain.com"; // replace with your Resend-verified sending address
+const FROM_EMAIL = "orders@beunoexports.com"; // must be a Resend-verified sending domain
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });

@@ -1,8 +1,30 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import logo from "@/assets/logo.png";
 import { Instagram, Facebook, Linkedin, Youtube, Mail, Phone, MapPin } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const Footer = () => {
+  const [newsletterEmail, setNewsletterEmail] = useState("");
+  const [subscribing, setSubscribing] = useState(false);
+
+  const subscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const email = newsletterEmail.trim();
+    if (!email) return;
+    setSubscribing(true);
+    const { error } = await supabase.from("newsletter_subscribers").insert({ email });
+    setSubscribing(false);
+    if (error) {
+      if (error.code === "23505") toast.success("You're already subscribed!");
+      else toast.error("Failed to subscribe. Please try again.");
+      return;
+    }
+    setNewsletterEmail("");
+    toast.success("Subscribed! Thanks for joining.");
+  };
+
   return (
     <footer className="bg-primary text-primary-foreground">
       <div className="container mx-auto px-4 py-16 lg:px-8">
@@ -84,17 +106,21 @@ const Footer = () => {
             <h3 className="font-display text-lg font-semibold mb-4">We Export To</h3>
             <p className="text-sm opacity-80 mb-6">USA, UK, UAE, Saudi Arabia, Singapore, Malaysia, Germany, Australia, Canada, and 30+ countries worldwide.</p>
             <h3 className="font-display text-lg font-semibold mb-3">Newsletter</h3>
-            <form className="flex gap-2" onSubmit={(e) => e.preventDefault()}>
+            <form className="flex gap-2" onSubmit={subscribe}>
               <input
                 type="email"
+                required
                 placeholder="Your email"
+                value={newsletterEmail}
+                onChange={(e) => setNewsletterEmail(e.target.value)}
                 className="flex-1 rounded-md bg-primary-foreground/10 px-3 py-2 text-sm text-primary-foreground placeholder:text-primary-foreground/50 outline-none focus:ring-1 focus:ring-primary-foreground/30"
               />
               <button
                 type="submit"
-                className="rounded-md bg-secondary px-4 py-2 text-sm font-semibold text-secondary-foreground transition-transform active:scale-95"
+                disabled={subscribing}
+                className="rounded-md bg-secondary px-4 py-2 text-sm font-semibold text-secondary-foreground transition-transform active:scale-95 disabled:opacity-50"
               >
-                Join
+                {subscribing ? "..." : "Join"}
               </button>
             </form>
           </div>
