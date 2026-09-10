@@ -94,7 +94,7 @@ const Products = () => {
                         <p className="text-sm text-muted-foreground">{p.packaging}</p>
                       </div>
                     </div>
-                    <div className="flex gap-3">
+                    <div className="flex flex-wrap gap-3">
   <Link
     to={`/shop?category=${p.category}`}
     className="px-5 py-2.5 bg-black text-white rounded-lg hover:opacity-90 transition-opacity"

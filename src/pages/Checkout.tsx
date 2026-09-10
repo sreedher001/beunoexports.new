@@ -340,7 +340,7 @@ const Checkout = () => {
         <h1 className="text-2xl font-bold mb-6">Checkout</h1>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-8 lg:grid-cols-3">
-            <div className="lg:col-span-2 space-y-6">
+            <div className="min-w-0 lg:col-span-2 space-y-6">
               <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
                 <h3 className="font-semibold mb-4">Delivery Details</h3>
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -396,7 +396,7 @@ const Checkout = () => {
               </div>
             </div>
 
-            <div>
+            <div className="min-w-0">
               <div className="rounded-xl border border-border bg-card p-6 shadow-sm sticky top-24">
                 <h3 className="font-semibold mb-4">Order Summary</h3>
                 <div className="space-y-3 mb-4 max-h-64 overflow-y-auto">
@@ -423,7 +423,7 @@ const Checkout = () => {
                       <div className="flex gap-2">
                         <input value={couponInput} onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
                           placeholder="Coupon code"
-                          className="flex-1 rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
+                          className="min-w-0 flex-1 rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
                         <button type="button" onClick={applyCoupon} disabled={couponApplying || !couponInput.trim()}
                           className="rounded-lg border border-border px-4 py-2 text-sm font-semibold hover:bg-muted disabled:opacity-50">
                           {couponApplying ? "..." : "Apply"}

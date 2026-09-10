@@ -47,16 +47,22 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
         </nav>
       </aside>
       {/* Mobile nav — horizontally scrollable so every section stays reachable */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card overflow-x-auto">
-        <div className="flex min-w-max">
-          {adminLinks.map((l) => (
-            <Link key={l.to} to={l.to}
-              className={`flex flex-col items-center gap-0.5 px-4 py-2 text-xs whitespace-nowrap ${
-                location.pathname === l.to ? "text-primary" : "text-muted-foreground"
-              }`}>
-              <l.icon className="h-4 w-4" /> {l.label}
-            </Link>
-          ))}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card">
+        <div className="relative">
+          <div className="overflow-x-auto">
+            <div className="flex min-w-max">
+              {adminLinks.map((l) => (
+                <Link key={l.to} to={l.to}
+                  className={`flex flex-col items-center gap-0.5 px-4 py-2 text-xs whitespace-nowrap ${
+                    location.pathname === l.to ? "text-primary" : "text-muted-foreground"
+                  }`}>
+                  <l.icon className="h-4 w-4" /> {l.label}
+                </Link>
+              ))}
+            </div>
+          </div>
+          {/* Fade hint that more nav items are reachable by scrolling right */}
+          <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-card to-transparent" />
         </div>
       </div>
       <main className="flex-1 p-4 md:p-8 pb-20 md:pb-8 overflow-auto">{children}</main>

@@ -42,7 +42,7 @@ const PrintInvoice = () => {
           </button>
         </div>
 
-        <div className="rounded-xl border border-border bg-white p-8 shadow-sm print:border-0 print:shadow-none print:rounded-none">
+        <div className="rounded-xl border border-border bg-white p-4 sm:p-8 shadow-sm print:border-0 print:shadow-none print:rounded-none print:p-8">
           <div className="flex items-start justify-between border-b border-border pb-6 mb-6">
             <div>
               <h1 className="text-xl font-bold">BuenoExports</h1>
@@ -56,7 +56,7 @@ const PrintInvoice = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-6 mb-6 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6 text-sm">
             <div>
               <p className="text-xs font-semibold uppercase text-muted-foreground mb-1">Bill To</p>
               <p className="font-medium">{order.full_name}</p>
@@ -64,7 +64,7 @@ const PrintInvoice = () => {
               <p className="text-muted-foreground">{order.email}</p>
               <p className="text-muted-foreground">{order.address}, {order.city}, {order.state} - {order.pincode}</p>
             </div>
-            <div className="text-right">
+            <div className="sm:text-right">
               <p className="text-xs font-semibold uppercase text-muted-foreground mb-1">Payment</p>
               <p className="capitalize">{order.payment_method === "cod" ? "Cash on Delivery" : "Online Payment"}</p>
               <p className="text-muted-foreground capitalize">Status: {order.payment_status}</p>
@@ -72,7 +72,8 @@ const PrintInvoice = () => {
             </div>
           </div>
 
-          <table className="w-full text-sm mb-6">
+          <div className="overflow-x-auto mb-6">
+          <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
                 <th className="py-2">Item</th>
@@ -94,6 +95,7 @@ const PrintInvoice = () => {
               ))}
             </tbody>
           </table>
+          </div>
 
           <div className="flex justify-end">
             <div className="w-56 space-y-1.5 text-sm">
