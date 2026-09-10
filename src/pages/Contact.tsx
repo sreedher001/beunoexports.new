@@ -128,8 +128,9 @@ const Contact = () => {
                     { key: "phone", label: "Phone Number", type: "tel", placeholder: "+1 234 567 890" },
                   ].map((f) => (
                     <div key={f.key}>
-                      <label className="block text-sm font-semibold mb-1.5">{f.label}</label>
+                      <label htmlFor={`contact-${f.key}`} className="block text-sm font-semibold mb-1.5">{f.label}</label>
                       <input
+                        id={`contact-${f.key}`}
                         type={f.type}
                         placeholder={f.placeholder}
                         value={form[f.key as keyof typeof form]}
@@ -140,8 +141,9 @@ const Contact = () => {
                     </div>
                   ))}
                   <div>
-                    <label className="block text-sm font-semibold mb-1.5">Message</label>
+                    <label htmlFor="contact-message" className="block text-sm font-semibold mb-1.5">Message</label>
                     <textarea
+                      id="contact-message"
                       rows={4}
                       placeholder="Tell us about your spice requirements..."
                       value={form.message}

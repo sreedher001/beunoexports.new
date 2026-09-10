@@ -92,48 +92,48 @@ const AdminCoupons = () => {
           </div>
           <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className="block text-sm font-medium mb-1">Code *</label>
-              <input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })} required
+              <label htmlFor="coupon-code" className="block text-sm font-medium mb-1">Code *</label>
+              <input id="coupon-code" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })} required
                 placeholder="e.g. WELCOME10"
                 className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Type</label>
-              <select value={form.discount_type} onChange={(e) => setForm({ ...form, discount_type: e.target.value })}
+              <label htmlFor="coupon-type" className="block text-sm font-medium mb-1">Type</label>
+              <select id="coupon-type" value={form.discount_type} onChange={(e) => setForm({ ...form, discount_type: e.target.value })}
                 className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary">
                 <option value="percent">Percent (%)</option>
                 <option value="flat">Flat (₹)</option>
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Discount Value *</label>
-              <input type="number" value={form.discount_value} onChange={(e) => setForm({ ...form, discount_value: e.target.value })} required
+              <label htmlFor="coupon-value" className="block text-sm font-medium mb-1">Discount Value *</label>
+              <input id="coupon-value" type="number" value={form.discount_value} onChange={(e) => setForm({ ...form, discount_value: e.target.value })} required
                 placeholder={form.discount_type === "percent" ? "e.g. 10" : "e.g. 100"}
                 className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
             </div>
             {form.discount_type === "percent" && (
               <div>
-                <label className="block text-sm font-medium mb-1">Max Discount (₹, optional)</label>
-                <input type="number" value={form.max_discount} onChange={(e) => setForm({ ...form, max_discount: e.target.value })}
+                <label htmlFor="coupon-max-discount" className="block text-sm font-medium mb-1">Max Discount (₹, optional)</label>
+                <input id="coupon-max-discount" type="number" value={form.max_discount} onChange={(e) => setForm({ ...form, max_discount: e.target.value })}
                   placeholder="Cap the % discount"
                   className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
               </div>
             )}
             <div>
-              <label className="block text-sm font-medium mb-1">Minimum Order Amount (₹)</label>
-              <input type="number" value={form.min_order_amount} onChange={(e) => setForm({ ...form, min_order_amount: e.target.value })}
+              <label htmlFor="coupon-min-order" className="block text-sm font-medium mb-1">Minimum Order Amount (₹)</label>
+              <input id="coupon-min-order" type="number" value={form.min_order_amount} onChange={(e) => setForm({ ...form, min_order_amount: e.target.value })}
                 placeholder="0"
                 className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Usage Limit (optional)</label>
-              <input type="number" value={form.usage_limit} onChange={(e) => setForm({ ...form, usage_limit: e.target.value })}
+              <label htmlFor="coupon-usage-limit" className="block text-sm font-medium mb-1">Usage Limit (optional)</label>
+              <input id="coupon-usage-limit" type="number" value={form.usage_limit} onChange={(e) => setForm({ ...form, usage_limit: e.target.value })}
                 placeholder="Unlimited if blank"
                 className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Expires On (optional)</label>
-              <input type="date" value={form.expires_at} onChange={(e) => setForm({ ...form, expires_at: e.target.value })}
+              <label htmlFor="coupon-expires" className="block text-sm font-medium mb-1">Expires On (optional)</label>
+              <input id="coupon-expires" type="date" value={form.expires_at} onChange={(e) => setForm({ ...form, expires_at: e.target.value })}
                 className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
             </div>
             <div className="flex items-center gap-2">

@@ -172,7 +172,7 @@ const AdminOrders = () => {
             <div className="space-y-2">
               {orderItems.map((item) => (
                 <div key={item.id} className="flex gap-3 p-2 rounded bg-muted text-sm">
-                  {item.product_image && <img src={item.product_image} alt="" className="h-10 w-10 rounded object-cover" />}
+                  {item.product_image && <img src={item.product_image} alt={item.product_name} className="h-10 w-10 rounded object-cover" />}
                   <div className="flex-1">
                     <p className="font-medium">{item.product_name}{item.variant_label ? ` (${item.variant_label})` : ""}</p>
                     <p className="text-xs text-muted-foreground">Qty: {item.quantity} × ₹{item.price}{item.sku ? ` · SKU: ${item.sku}` : ""}</p>

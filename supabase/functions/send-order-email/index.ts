@@ -15,6 +15,15 @@ const corsHeaders = {
 
 const FROM_EMAIL = "orders@beunoexports.com"; // must be a Resend-verified sending domain
 
+function escapeHtml(value: unknown): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -33,13 +42,17 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Resend is not configured" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    const orderNumber = escapeHtml(order.order_number);
+    const status = escapeHtml(order.status);
+    const totalAmount = escapeHtml(order.total_amount);
+
     const subject = isNew
       ? `Order Confirmed - ${order.order_number}`
       : `Order ${order.order_number} is now ${order.status}`;
 
     const html = isNew
-      ? `<h2>Thank you for your order!</h2><p>Order #: <strong>${order.order_number}</strong></p><p>Total: ₹${order.total_amount}</p><p>We'll notify you as your order progresses.</p>`
-      : `<h2>Order Update</h2><p>Order #: <strong>${order.order_number}</strong></p><p>Status: <strong>${order.status}</strong></p>`;
+      ? `<h2>Thank you for your order!</h2><p>Order #: <strong>${orderNumber}</strong></p><p>Total: ₹${totalAmount}</p><p>We'll notify you as your order progresses.</p>`
+      : `<h2>Order Update</h2><p>Order #: <strong>${orderNumber}</strong></p><p>Status: <strong>${status}</strong></p>`;
 
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",

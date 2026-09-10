@@ -201,58 +201,58 @@ const AdminProducts = () => {
           </div>
           <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className="block text-sm font-medium mb-1">Name *</label>
-              <input value={form.name} onChange={(e) => handleNameChange(e.target.value)} required
+              <label htmlFor="product-name" className="block text-sm font-medium mb-1">Name *</label>
+              <input id="product-name" value={form.name} onChange={(e) => handleNameChange(e.target.value)} required
                 className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Slug</label>
-              <input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })}
+              <label htmlFor="product-slug" className="block text-sm font-medium mb-1">Slug</label>
+              <input id="product-slug" value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })}
                 className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">SKU</label>
-              <input value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} placeholder="e.g. TUR-500G"
+              <label htmlFor="product-sku" className="block text-sm font-medium mb-1">SKU</label>
+              <input id="product-sku" value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} placeholder="e.g. TUR-500G"
                 className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Price (₹) *</label>
-              <input type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} required
+              <label htmlFor="product-price" className="block text-sm font-medium mb-1">Price (₹) *</label>
+              <input id="product-price" type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} required
                 className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">MRP (₹)</label>
-              <input type="number" value={form.mrp} onChange={(e) => setForm({ ...form, mrp: e.target.value })}
+              <label htmlFor="product-mrp" className="block text-sm font-medium mb-1">MRP (₹)</label>
+              <input id="product-mrp" type="number" value={form.mrp} onChange={(e) => setForm({ ...form, mrp: e.target.value })}
                 className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Stock</label>
-              <input type="number" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })}
+              <label htmlFor="product-stock" className="block text-sm font-medium mb-1">Stock</label>
+              <input id="product-stock" type="number" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })}
                 className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Unit</label>
-              <select value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })}
+              <label htmlFor="product-unit" className="block text-sm font-medium mb-1">Unit</label>
+              <select id="product-unit" value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })}
                 className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary">
                 <option value="kg">kg</option><option value="g">g</option><option value="pack">pack</option><option value="piece">piece</option>
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Weight/Size</label>
-              <input value={form.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })} placeholder="e.g. 500g, 1kg"
+              <label htmlFor="product-weight" className="block text-sm font-medium mb-1">Weight/Size</label>
+              <input id="product-weight" value={form.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })} placeholder="e.g. 500g, 1kg"
                 className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Category</label>
-              <select value={form.category_id} onChange={(e) => setForm({ ...form, category_id: e.target.value })}
+              <label htmlFor="product-category" className="block text-sm font-medium mb-1">Category</label>
+              <select id="product-category" value={form.category_id} onChange={(e) => setForm({ ...form, category_id: e.target.value })}
                 className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary">
                 <option value="">No Category</option>
                 {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Catalog</label>
-              <select value={form.catalog_type} onChange={(e) => setForm({ ...form, catalog_type: e.target.value })}
+              <label htmlFor="product-catalog" className="block text-sm font-medium mb-1">Catalog</label>
+              <select id="product-catalog" value={form.catalog_type} onChange={(e) => setForm({ ...form, catalog_type: e.target.value })}
                 className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary">
                 <option value="retail">Retail</option>
                 <option value="wholesale">Wholesale</option>
@@ -260,34 +260,34 @@ const AdminProducts = () => {
             </div>
             {form.catalog_type === "wholesale" && (
               <div>
-                <label className="block text-sm font-medium mb-1">MOQ (Minimum Order Qty)</label>
-                <input type="number" value={form.moq} onChange={(e) => setForm({ ...form, moq: e.target.value })} placeholder="e.g. 50"
+                <label htmlFor="product-moq" className="block text-sm font-medium mb-1">MOQ (Minimum Order Qty)</label>
+                <input id="product-moq" type="number" value={form.moq} onChange={(e) => setForm({ ...form, moq: e.target.value })} placeholder="e.g. 50"
                   className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
               </div>
             )}
             <div className="sm:col-span-2">
-              <label className="block text-sm font-medium mb-1">Description</label>
-              <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3}
+              <label htmlFor="product-description" className="block text-sm font-medium mb-1">Description</label>
+              <textarea id="product-description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3}
                 className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none resize-none focus:border-secondary" />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Image</label>
-              <input type="file" accept="image/*" onChange={handleImageUpload} className="text-sm" />
+              <label htmlFor="product-image" className="block text-sm font-medium mb-1">Image</label>
+              <input id="product-image" type="file" accept="image/*" onChange={handleImageUpload} className="text-sm" />
               {uploading && <p className="text-xs text-muted-foreground mt-1">Uploading...</p>}
-              {form.image_url && <img src={form.image_url} alt="" className="mt-2 h-16 w-16 rounded object-cover" />}
+              {form.image_url && <img src={form.image_url} alt={form.name || "Product"} className="mt-2 h-16 w-16 rounded object-cover" />}
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Additional Gallery Photos</label>
+              <label htmlFor="product-gallery" className="block text-sm font-medium mb-1">Additional Gallery Photos</label>
               {editing ? (
                 <>
-                  <input type="file" accept="image/*" onChange={handleGalleryUpload} className="text-sm" />
+                  <input id="product-gallery" type="file" accept="image/*" onChange={handleGalleryUpload} className="text-sm" />
                   {uploadingGallery && <p className="text-xs text-muted-foreground mt-1">Uploading...</p>}
                   {galleryImages.length > 0 && (
                     <div className="flex flex-wrap gap-2 mt-2">
-                      {galleryImages.map((g) => (
+                      {galleryImages.map((g, i) => (
                         <div key={g.id} className="relative">
-                          <img src={g.url} alt="" className="h-16 w-16 rounded object-cover" />
-                          <button type="button" onClick={() => removeGalleryImage(g.id)}
+                          <img src={g.url} alt={`${form.name || "Product"} gallery ${i + 1}`} className="h-16 w-16 rounded object-cover" />
+                          <button type="button" onClick={() => removeGalleryImage(g.id)} aria-label="Remove gallery photo"
                             className="absolute -top-1.5 -right-1.5 rounded-full bg-destructive text-white p-0.5">
                             <X className="h-3 w-3" />
                           </button>
@@ -321,17 +321,17 @@ const AdminProducts = () => {
                   {variants.map((v, i) => (
                     <div key={i} className="grid grid-cols-[1fr_auto_auto_auto_auto_auto] gap-2 items-center">
                       <input value={v.label} onChange={(e) => setVariants(variants.map((x, j) => j === i ? { ...x, label: e.target.value } : x))}
-                        placeholder="Label (e.g. 500g)"
+                        placeholder="Label (e.g. 500g)" aria-label={`Variant ${i + 1} label`}
                         className="rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
                       <input type="number" value={v.price} onChange={(e) => setVariants(variants.map((x, j) => j === i ? { ...x, price: e.target.value } : x))}
-                        placeholder="Price" className="w-24 rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
+                        placeholder="Price" aria-label={`Variant ${i + 1} price`} className="w-24 rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
                       <input type="number" value={v.mrp} onChange={(e) => setVariants(variants.map((x, j) => j === i ? { ...x, mrp: e.target.value } : x))}
-                        placeholder="MRP" className="w-24 rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
+                        placeholder="MRP" aria-label={`Variant ${i + 1} MRP`} className="w-24 rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
                       <input type="number" value={v.stock} onChange={(e) => setVariants(variants.map((x, j) => j === i ? { ...x, stock: e.target.value } : x))}
-                        placeholder="Stock" className="w-20 rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
+                        placeholder="Stock" aria-label={`Variant ${i + 1} stock`} className="w-20 rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
                       <input value={v.sku} onChange={(e) => setVariants(variants.map((x, j) => j === i ? { ...x, sku: e.target.value } : x))}
-                        placeholder="SKU" className="w-28 rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
-                      <button type="button" onClick={() => setVariants(variants.filter((_, j) => j !== i))}
+                        placeholder="SKU" aria-label={`Variant ${i + 1} SKU`} className="w-28 rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
+                      <button type="button" onClick={() => setVariants(variants.filter((_, j) => j !== i))} aria-label={`Remove variant ${i + 1}`}
                         className="p-2 text-muted-foreground hover:text-destructive"><X className="h-4 w-4" /></button>
                     </div>
                   ))}
@@ -366,7 +366,7 @@ const AdminProducts = () => {
                 <tr key={p.id} className="hover:bg-muted/30">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
-                      <img src={p.image_url || "/placeholder.svg"} alt="" className="h-10 w-10 rounded object-cover" />
+                      <img src={p.image_url || "/placeholder.svg"} alt={p.name} className="h-10 w-10 rounded object-cover" />
                       <div>
                         <p className="font-medium">{p.name}</p>
                         <p className="text-xs text-muted-foreground">

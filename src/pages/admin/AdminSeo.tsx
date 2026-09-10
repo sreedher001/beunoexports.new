@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, cloneElement, isValidElement } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
@@ -30,13 +30,16 @@ const empty: Settings = {
   contact_notification_email: "", low_stock_threshold: 5,
 };
 
-const Field = ({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) => (
-  <div>
-    <label className="block text-sm font-medium mb-1">{label}</label>
-    {children}
-    {hint && <p className="text-xs text-muted-foreground mt-1">{hint}</p>}
-  </div>
-);
+const Field = ({ label, hint, children }: { label: string; hint?: string; children: React.ReactElement }) => {
+  const id = "seo-" + label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  return (
+    <div>
+      <label htmlFor={id} className="block text-sm font-medium mb-1">{label}</label>
+      {isValidElement(children) ? cloneElement(children, { id } as Partial<unknown>) : children}
+      {hint && <p className="text-xs text-muted-foreground mt-1">{hint}</p>}
+    </div>
+  );
+};
 
 const inputCls = "w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary";
 

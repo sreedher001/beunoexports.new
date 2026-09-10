@@ -135,14 +135,14 @@ const ProductDetail = () => {
         <div className="grid md:grid-cols-2 gap-8">
           <div>
             <div className="rounded-xl overflow-hidden border border-border shadow-md">
-              <img src={activeImage || "/placeholder.svg"} alt={product.name} className="w-full aspect-square object-cover" />
+              <img src={activeImage || "/placeholder.svg"} alt={product.name} loading="eager" className="w-full aspect-square object-cover" />
             </div>
             {[product.image_url, ...gallery].filter(Boolean).length > 1 && (
               <div className="flex gap-2 mt-3 overflow-x-auto">
                 {[product.image_url, ...gallery].filter((u): u is string => !!u).map((url, i) => (
-                  <button key={i} onClick={() => setActiveImage(url)}
+                  <button key={i} onClick={() => setActiveImage(url)} aria-label={`View image ${i + 1} of ${product.name}`}
                     className={`h-16 w-16 shrink-0 rounded-lg overflow-hidden border-2 ${activeImage === url ? "border-secondary" : "border-transparent"}`}>
-                    <img src={url} alt="" className="h-full w-full object-cover" />
+                    <img src={url} alt={`${product.name} thumbnail ${i + 1}`} loading="lazy" className="h-full w-full object-cover" />
                   </button>
                 ))}
               </div>
