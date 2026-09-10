@@ -14,6 +14,15 @@ const corsHeaders = {
 
 const FROM_EMAIL = "orders@beunoexports.com"; // must be a Resend-verified sending domain
 
+function escapeHtml(value: unknown): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -36,16 +45,16 @@ serve(async (req) => {
     }
 
     const html = `<h2>New Contact Form Submission</h2>
-      <p><strong>Name:</strong> ${name}</p>
-      <p><strong>Email:</strong> ${email}</p>
-      <p><strong>Phone:</strong> ${phone || "-"}</p>
+      <p><strong>Name:</strong> ${escapeHtml(name)}</p>
+      <p><strong>Email:</strong> ${escapeHtml(email)}</p>
+      <p><strong>Phone:</strong> ${escapeHtml(phone || "-")}</p>
       <p><strong>Message:</strong></p>
-      <p>${String(message || "").replace(/\n/g, "<br/>")}</p>`;
+      <p>${escapeHtml(message || "").replace(/\n/g, "<br/>")}</p>`;
 
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from: FROM_EMAIL, to: notifyEmail, reply_to: email, subject: `New inquiry from ${name}`, html }),
+      body: JSON.stringify({ from: FROM_EMAIL, to: notifyEmail, reply_to: email, subject: `New inquiry from ${escapeHtml(name)}`, html }),
     });
 
     if (!res.ok) {

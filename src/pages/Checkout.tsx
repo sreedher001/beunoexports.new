@@ -5,7 +5,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { getBuyNowItem, clearBuyNowItem } from "@/lib/utils";
 import { toast } from "sonner";
 import { z } from "zod";
-import type { User } from "@supabase/supabase-js";
 import { Truck, Banknote } from "lucide-react";
 
 const orderSchema = z.object({
@@ -43,8 +42,8 @@ const Field = ({ name, label, type = "text", placeholder = "", form, errors, onC
   form: FormState; errors: Record<string, string>; onChange: (name: keyof FormState, value: string) => void;
 }) => (
   <div>
-    <label className="block text-sm font-medium mb-1">{label}</label>
-    <input type={type} value={form[name]} placeholder={placeholder}
+    <label htmlFor={`checkout-${name}`} className="block text-sm font-medium mb-1">{label}</label>
+    <input id={`checkout-${name}`} type={type} value={form[name]} placeholder={placeholder}
       onChange={(e) => onChange(name, e.target.value)}
       className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm outline-none focus:border-secondary focus:ring-1 focus:ring-secondary/30" />
     {errors[name] && <p className="text-xs text-destructive mt-1">{errors[name]}</p>}
@@ -186,21 +185,16 @@ const Checkout = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, checkoutItems.length]);
 
-  const placeOrder = async (
-    asUser: User | null,
-    payment?: { status: "paid"; razorpay_order_id: string; razorpay_payment_id: string }
-  ) => {
-    setSubmitting(true);
+  type PlacedOrder = { order_id: string; order_number: string; guest_access_token: string; total_amount: number };
 
+  // Creates the order. All money fields (price, discount, shipping, tax, total)
+  // are computed server-side inside place_order_atomic from the DB — the client
+  // only supplies product_id/variant_id/quantity, never a price it computed itself.
+  const createOrder = async (): Promise<PlacedOrder | null> => {
     const items = checkoutItems.map((item) => ({
       product_id: item.products.id,
       variant_id: item.product_variants?.id ?? null,
-      product_name: item.products.name,
-      product_image: item.products.image_url,
       quantity: item.quantity,
-      price: linePrice(item),
-      variant_label: item.product_variants?.label ?? null,
-      sku: item.product_variants?.sku ?? item.products.sku ?? null,
     }));
 
     const { data, error: orderError } = await supabase.rpc("place_order_atomic", {
@@ -213,57 +207,52 @@ const Checkout = () => {
       _pincode: form.pincode,
       _notes: form.notes || null,
       _coupon_code: appliedCoupon?.code ?? null,
-      _discount_amount: discount,
       _payment_method: paymentMethod,
       _items: items,
-      _shipping_amount: shipping,
-      _tax_amount: tax,
-      _payment_status: payment?.status ?? "pending",
-      _razorpay_order_id: payment?.razorpay_order_id ?? null,
-      _razorpay_payment_id: payment?.razorpay_payment_id ?? null,
     });
     const order = data?.[0];
-
     if (orderError || !order) {
       toast.error(orderError?.message || "Failed to place order");
-      setSubmitting(false);
-      return;
+      return null;
     }
+    return order;
+  };
 
+  // Clears the cart/buy-now item, saves the guest access token, fires the
+  // confirmation email, and navigates. Called once the order is confirmed
+  // placed (COD) or paid (online).
+  const finalizeOrder = async (order: PlacedOrder) => {
     if (isBuyNow) {
       clearBuyNowItem();
-    } else if (asUser) {
-      await supabase.from("cart_items").delete().eq("user_id", asUser.id);
+    } else if (user) {
+      await supabase.from("cart_items").delete().eq("user_id", user.id);
     }
 
-    if (!asUser) {
+    if (!user) {
       try {
         localStorage.setItem(`guest_order_${order.order_id}`, order.guest_access_token);
       } catch { /* localStorage unavailable — guest just won't be able to reload the confirmation page */ }
     }
 
-    if (appliedCoupon) await supabase.rpc("redeem_coupon", { _code: appliedCoupon.code });
-
     // Fire the confirmation email directly so it doesn't depend on a Database Webhook
     // being configured in the Supabase dashboard. Best-effort — never blocks checkout.
     supabase.functions.invoke("send-order-email", {
-      body: { type: "INSERT", table: "orders", record: { order_number: order.order_number, total_amount: total, email: form.email, status: "pending" } },
+      body: { type: "INSERT", table: "orders", record: { order_number: order.order_number, total_amount: order.total_amount, email: form.email, status: "pending" } },
     }).catch(() => {});
 
     toast.success("Order placed successfully! Check your email for confirmation.");
-    navigate(`/order-confirmation/${order.order_id}`, {
-      state: {
-        guestOrder: !asUser,
-        order: { ...form, order_number: order.order_number, total_amount: total, coupon_code: appliedCoupon?.code ?? null, discount_amount: discount, shipping_amount: shipping, tax_amount: tax },
-        items: checkoutItems.map((item) => ({
-          product_name: item.products.name,
-          variant_label: item.product_variants?.label ?? null,
-          quantity: item.quantity,
-          price: linePrice(item),
-        })),
-      },
-    });
+    // No router state is passed — OrderConfirmation re-fetches the order fresh
+    // from the DB (by RLS for logged-in users, by guest token otherwise), so it
+    // always shows the authoritative, server-computed totals.
+    navigate(`/order-confirmation/${order.order_id}`);
+  };
+
+  const placeOrderCod = async () => {
+    setSubmitting(true);
+    const order = await createOrder();
     setSubmitting(false);
+    if (!order) return;
+    await finalizeOrder(order);
   };
 
   const loadRazorpayScript = () => new Promise<boolean>((resolve) => {
@@ -281,7 +270,13 @@ const Checkout = () => {
     const loaded = await loadRazorpayScript();
     if (!loaded) { toast.error("Failed to load payment gateway"); setSubmitting(false); return; }
 
-    const { data: rpOrder, error: rpError } = await supabase.functions.invoke("create-razorpay-order", { body: { amount: total } });
+    // The order is created first (stock reserved, status "pending"); the Razorpay
+    // charge amount is then read back from that DB row server-side — never sent
+    // by this client — so there is no way to pay less than the real total.
+    const order = await createOrder();
+    if (!order) { setSubmitting(false); return; }
+
+    const { data: rpOrder, error: rpError } = await supabase.functions.invoke("create-razorpay-order", { body: { order_id: order.order_id } });
     if (rpError || !rpOrder?.id) { toast.error("Failed to start payment"); setSubmitting(false); return; }
 
     type RazorpayResponse = { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string };
@@ -295,9 +290,16 @@ const Checkout = () => {
       name: "BuenoExports",
       prefill: { name: form.full_name, email: form.email, contact: form.phone },
       handler: async (response: RazorpayResponse) => {
-        const { data: verify } = await supabase.functions.invoke("verify-razorpay-payment", { body: response });
-        if (!verify?.valid) { toast.error("Payment verification failed"); setSubmitting(false); return; }
-        await placeOrder(user, { status: "paid", razorpay_order_id: response.razorpay_order_id, razorpay_payment_id: response.razorpay_payment_id });
+        const { data: verify } = await supabase.functions.invoke("verify-razorpay-payment", {
+          body: { order_id: order.order_id, ...response },
+        });
+        if (!verify?.valid) {
+          toast.error(`Payment verification failed. If money was deducted, contact us with order ${order.order_number}.`);
+          setSubmitting(false);
+          return;
+        }
+        await finalizeOrder(order);
+        setSubmitting(false);
       },
       modal: { ondismiss: () => setSubmitting(false) },
     });
@@ -317,7 +319,7 @@ const Checkout = () => {
     if (paymentMethod === "online") {
       await payWithRazorpay();
     } else {
-      await placeOrder(user);
+      await placeOrderCod();
     }
   };
 
@@ -345,8 +347,8 @@ const Checkout = () => {
                   <div className="sm:col-span-2"><Field name="address" label="Address" placeholder="House no, street, area..." form={form} errors={errors} onChange={updateForm} /></div>
                   <Field name="city" label="City" placeholder="City" form={form} errors={errors} onChange={updateForm} />
                   <div>
-                    <label className="block text-sm font-medium mb-1">State</label>
-                    <select value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value })}
+                    <label htmlFor="checkout-state" className="block text-sm font-medium mb-1">State</label>
+                    <select id="checkout-state" value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value })}
                       className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm outline-none focus:border-secondary">
                       <option value="">Select State</option>
                       {indianStates.map((s) => <option key={s} value={s}>{s}</option>)}
@@ -386,7 +388,7 @@ const Checkout = () => {
               <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
                 <h3 className="font-semibold mb-2">Order Notes (optional)</h3>
                 <textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                  placeholder="Any special instructions..."
+                  aria-label="Order notes" placeholder="Any special instructions..."
                   className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm outline-none resize-none focus:border-secondary" />
               </div>
             </div>
@@ -397,7 +399,7 @@ const Checkout = () => {
                 <div className="space-y-3 mb-4 max-h-64 overflow-y-auto">
                   {checkoutItems.map((item) => (
                     <div key={item.id} className="flex gap-3 text-sm">
-                      <img src={item.products.image_url || "/placeholder.svg"} alt="" className="h-12 w-12 rounded object-cover" />
+                      <img src={item.products.image_url || "/placeholder.svg"} alt={item.products.name} className="h-12 w-12 rounded object-cover" />
                       <div className="flex-1 min-w-0">
                         <p className="font-medium line-clamp-1">{item.products.name}</p>
                         {item.product_variants && <p className="text-xs text-muted-foreground">{item.product_variants.label}</p>}

@@ -670,19 +670,14 @@ export type Database = {
           _pincode: string
           _notes: string | null
           _coupon_code: string | null
-          _discount_amount: number
           _payment_method: string
           _items: Json
-          _shipping_amount?: number
-          _tax_amount?: number
-          _payment_status?: string
-          _razorpay_order_id?: string | null
-          _razorpay_payment_id?: string | null
         }
         Returns: {
           order_id: string
           order_number: string
           guest_access_token: string
+          total_amount: number
         }[]
       }
       update_order_status: {

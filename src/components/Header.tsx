@@ -87,25 +87,25 @@ const Header = () => {
         <div className="hidden lg:flex items-center gap-3">
           <SearchBox className="w-48 xl:w-64" onSearch={() => {}} />
           <ModeSwitch />
-          <Link to="/wishlist" className="relative p-2 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground">
+          <Link to="/wishlist" aria-label="Wishlist" className="relative p-2 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground">
             <Heart className="h-5 w-5" />
           </Link>
           {user && (
-            <Link to="/cart" className="relative p-2 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground">
+            <Link to="/cart" aria-label="Cart" className="relative p-2 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground">
               <ShoppingCart className="h-5 w-5" />
             </Link>
           )}
           {user ? (
             <div className="flex items-center gap-1 ml-2">
               {isAdmin && (
-                <Link to="/admin" className="p-2 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground" title="Admin">
+                <Link to="/admin" aria-label="Admin" className="p-2 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground" title="Admin">
                   <Shield className="h-5 w-5" />
                 </Link>
               )}
-              <Link to="/my-orders" className="p-2 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground" title="My Orders">
+              <Link to="/my-orders" aria-label="My Orders" className="p-2 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground" title="My Orders">
                 <User className="h-5 w-5" />
               </Link>
-              <button onClick={signOut} className="p-2 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground" title="Logout">
+              <button onClick={signOut} aria-label="Logout" className="p-2 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground" title="Logout">
                 <LogOut className="h-5 w-5" />
               </button>
             </div>
@@ -122,7 +122,7 @@ const Header = () => {
         {/* Mobile toggle */}
         <div className="flex items-center gap-1 shrink-0 lg:hidden">
           {user && (
-            <Link to="/cart" className="p-2 text-foreground"><ShoppingCart className="h-5 w-5" /></Link>
+            <Link to="/cart" aria-label="Cart" className="p-2 text-foreground"><ShoppingCart className="h-5 w-5" /></Link>
           )}
           <button onClick={() => setOpen(!open)} className="rounded-md p-2 text-foreground" aria-label="Toggle menu">
             {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}

@@ -73,9 +73,10 @@ const ResetPassword = () => {
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">New Password</label>
+                  <label htmlFor="reset-password" className="block text-sm font-medium mb-1">New Password</label>
                   <div className="relative">
                     <input
+                      id="reset-password"
                       type={showPw ? "text" : "password"}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
@@ -84,14 +85,15 @@ const ResetPassword = () => {
                       className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm outline-none focus:border-secondary focus:ring-1 focus:ring-secondary/30 pr-10"
                       placeholder="Min 6 characters"
                     />
-                    <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-2.5 text-muted-foreground">
+                    <button type="button" onClick={() => setShowPw(!showPw)} aria-label={showPw ? "Hide password" : "Show password"} className="absolute right-3 top-2.5 text-muted-foreground">
                       {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Confirm New Password</label>
+                  <label htmlFor="reset-confirm-password" className="block text-sm font-medium mb-1">Confirm New Password</label>
                   <input
+                    id="reset-confirm-password"
                     type={showPw ? "text" : "password"}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
