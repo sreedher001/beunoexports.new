@@ -90,11 +90,9 @@ const Header = () => {
           <Link to="/wishlist" aria-label="Wishlist" className="relative p-2 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground">
             <Heart className="h-5 w-5" />
           </Link>
-          {user && (
-            <Link to="/cart" aria-label="Cart" className="relative p-2 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground">
-              <ShoppingCart className="h-5 w-5" />
-            </Link>
-          )}
+          <Link to="/cart" aria-label="Cart" className="relative p-2 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground">
+            <ShoppingCart className="h-5 w-5" />
+          </Link>
           {user ? (
             <div className="flex items-center gap-1 ml-2">
               {isAdmin && (
@@ -121,9 +119,7 @@ const Header = () => {
 
         {/* Mobile toggle */}
         <div className="flex items-center gap-1 shrink-0 lg:hidden">
-          {user && (
-            <Link to="/cart" aria-label="Cart" className="p-2 text-foreground"><ShoppingCart className="h-5 w-5" /></Link>
-          )}
+          <Link to="/cart" aria-label="Cart" className="p-2 text-foreground"><ShoppingCart className="h-5 w-5" /></Link>
           <button onClick={() => setOpen(!open)} className="rounded-md p-2 text-foreground" aria-label="Toggle menu">
             {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useCart } from "@/hooks/useCart";
 import { useWishlist } from "@/hooks/useWishlist";
 import { wholesaleEnquiryUrl, setBuyNowItem } from "@/lib/utils";
 import { ShoppingCart, Heart, Minus, Plus, ArrowLeft, MessageCircle } from "lucide-react";
@@ -22,7 +22,7 @@ type RelatedProduct = { id: string; name: string; slug: string; price: number; m
 const ProductDetail = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { addToCart: addToCartHook } = useCart();
   const [product, setProduct] = useState<Product | null>(null);
   const [variants, setVariants] = useState<Variant[]>([]);
   const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null);
@@ -76,28 +76,9 @@ const ProductDetail = () => {
     setQty(1);
   };
 
-  const findCartRow = (userId: string, productId: string) => {
-    let query = supabase.from("cart_items").select("id, quantity").eq("user_id", userId).eq("product_id", productId);
-    query = selectedVariant ? query.eq("variant_id", selectedVariant.id) : query.is("variant_id", null);
-    return query.maybeSingle();
-  };
-
   const addToCart = async () => {
-    if (!user) { toast.error("Please login to add to cart"); return; }
     if (!product) return;
-    const { data: existing } = await findCartRow(user.id, product.id);
-
-    let error;
-    if (existing) {
-      const nextQty = Math.min(existing.quantity + qty, activeStock);
-      ({ error } = await supabase.from("cart_items").update({ quantity: nextQty }).eq("id", existing.id));
-    } else {
-      ({ error } = await supabase.from("cart_items").insert({
-        user_id: user.id, product_id: product.id, variant_id: selectedVariant?.id ?? null, quantity: qty,
-      }));
-    }
-    if (error) toast.error("Failed to add");
-    else toast.success(`Added ${qty} ${product.unit} to cart!`);
+    await addToCartHook(product.id, selectedVariant?.id ?? null, qty, activeStock);
   };
 
   const buyNow = () => {

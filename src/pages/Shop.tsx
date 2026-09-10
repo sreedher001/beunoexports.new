@@ -1,12 +1,11 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 import { useCatalogMode } from "@/contexts/CatalogModeContext";
+import { useCart } from "@/hooks/useCart";
 import { useWishlist } from "@/hooks/useWishlist";
 import { wholesaleEnquiryUrl } from "@/lib/utils";
 import { Search, Heart, ShoppingCart, Filter, MessageCircle } from "lucide-react";
-import { toast } from "sonner";
 import ScrollReveal from "@/components/ScrollReveal";
 
 type Product = {
@@ -30,7 +29,7 @@ type Product = {
 type Category = { id: string; name: string; slug: string };
 
 const Shop = () => {
-  const { user } = useAuth();
+  const { addToCart: addToCartHook } = useCart();
   const { mode } = useCatalogMode();
   const [searchParams] = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
@@ -113,20 +112,9 @@ const Shop = () => {
   const paged = useMemo(() => sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), [sorted, page]);
 
   const addToCart = async (productId: string) => {
-    if (!user) { toast.error("Please login to add to cart"); return; }
     const product = products.find((p) => p.id === productId);
-    const { data: existing } = await supabase.from("cart_items").select("id, quantity")
-      .eq("user_id", user.id).eq("product_id", productId).maybeSingle();
-
-    let error;
-    if (existing) {
-      const nextQty = product ? Math.min(existing.quantity + 1, product.stock) : existing.quantity + 1;
-      ({ error } = await supabase.from("cart_items").update({ quantity: nextQty }).eq("id", existing.id));
-    } else {
-      ({ error } = await supabase.from("cart_items").insert({ user_id: user.id, product_id: productId, quantity: 1 }));
-    }
-    if (error) toast.error("Failed to add to cart");
-    else toast.success("Added to cart!");
+    if (!product) return;
+    await addToCartHook(productId, null, 1, product.stock);
   };
 
   const discount = (mrp: number, price: number) => mrp > price ? Math.round(((mrp - price) / mrp) * 100) : 0;

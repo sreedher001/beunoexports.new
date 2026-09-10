@@ -1,14 +1,13 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 import { useCatalogMode } from "@/contexts/CatalogModeContext";
+import { useCart } from "@/hooks/useCart";
 import { useWishlist } from "@/hooks/useWishlist";
 import { wholesaleEnquiryUrl, setBuyNowItem } from "@/lib/utils";
 import ScrollReveal from "@/components/ScrollReveal";
 import heroImg from "@/assets/hero-spices.jpg";
 import { ShieldCheck, Globe, Truck, Leaf, Star, Award, ShoppingBag, ShoppingCart, Heart, MessageCircle } from "lucide-react";
-import { toast } from "sonner";
 
 type Product = {
   id: string; name: string; slug: string; price: number; mrp: number;
@@ -31,7 +30,7 @@ const testimonials = [
 ];
 
 const Index = () => {
-  const { user } = useAuth();
+  const { addToCart: addToCartHook } = useCart();
   const { mode } = useCatalogMode();
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
@@ -61,17 +60,7 @@ const Index = () => {
   const disc = (mrp: number, price: number) => mrp > price ? Math.round(((mrp - price) / mrp) * 100) : 0;
 
   const addToCart = async (product: Product) => {
-    if (!user) { toast.error("Please login to add to cart"); return; }
-    const { data: existing } = await supabase.from("cart_items").select("id, quantity")
-      .eq("user_id", user.id).eq("product_id", product.id).is("variant_id", null).maybeSingle();
-
-    if (existing) {
-      const nextQty = Math.min(existing.quantity + 1, product.stock);
-      await supabase.from("cart_items").update({ quantity: nextQty }).eq("id", existing.id);
-    } else {
-      await supabase.from("cart_items").insert({ user_id: user.id, product_id: product.id, quantity: 1 });
-    }
-    toast.success("Added to cart!");
+    await addToCartHook(product.id, null, 1, product.stock);
   };
 
   const buyNow = (product: Product) => {
