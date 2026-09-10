@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { LayoutDashboard, Package, ShoppingCart, Users, Upload, Tag, ArrowLeft } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, Users, Upload, Tag, ArrowLeft, Search, Mail } from "lucide-react";
 
 const adminLinks = [
   { label: "Dashboard", to: "/admin", icon: LayoutDashboard },
@@ -9,7 +9,9 @@ const adminLinks = [
   { label: "Orders", to: "/admin/orders", icon: ShoppingCart },
   { label: "Users", to: "/admin/users", icon: Users },
   { label: "Coupons", to: "/admin/coupons", icon: Tag },
+  { label: "Messages", to: "/admin/messages", icon: Mail },
   { label: "Bulk Upload", to: "/admin/bulk-upload", icon: Upload },
+  { label: "SEO", to: "/admin/seo", icon: Search },
 ];
 
 const AdminLayout = ({ children }: { children: ReactNode }) => {
@@ -44,16 +46,18 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
           ))}
         </nav>
       </aside>
-      {/* Mobile nav */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card flex">
-        {adminLinks.slice(0, 4).map((l) => (
-          <Link key={l.to} to={l.to}
-            className={`flex-1 flex flex-col items-center gap-0.5 py-2 text-xs ${
-              location.pathname === l.to ? "text-primary" : "text-muted-foreground"
-            }`}>
-            <l.icon className="h-4 w-4" /> {l.label}
-          </Link>
-        ))}
+      {/* Mobile nav — horizontally scrollable so every section stays reachable */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card overflow-x-auto">
+        <div className="flex min-w-max">
+          {adminLinks.map((l) => (
+            <Link key={l.to} to={l.to}
+              className={`flex flex-col items-center gap-0.5 px-4 py-2 text-xs whitespace-nowrap ${
+                location.pathname === l.to ? "text-primary" : "text-muted-foreground"
+              }`}>
+              <l.icon className="h-4 w-4" /> {l.label}
+            </Link>
+          ))}
+        </div>
       </div>
       <main className="flex-1 p-4 md:p-8 pb-20 md:pb-8 overflow-auto">{children}</main>
     </div>

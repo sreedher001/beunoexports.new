@@ -7,18 +7,18 @@ type Product = {
   id: string; name: string; slug: string; description: string | null;
   price: number; mrp: number; image_url: string | null; stock: number;
   unit: string; weight: string | null; category_id: string | null; is_active: boolean;
-  catalog_type: string; moq: number | null;
+  catalog_type: string; moq: number | null; sku: string | null;
 };
 
 type Category = { id: string; name: string; slug: string };
 
-type VariantForm = { id?: string; label: string; price: string; mrp: string; stock: string };
+type VariantForm = { id?: string; label: string; price: string; mrp: string; stock: string; sku: string };
 
-const emptyVariant: VariantForm = { label: "", price: "", mrp: "", stock: "" };
+const emptyVariant: VariantForm = { label: "", price: "", mrp: "", stock: "", sku: "" };
 
 const emptyForm = {
   name: "", slug: "", description: "", price: "", mrp: "", stock: "", unit: "kg", weight: "", category_id: "", image_url: "", is_active: true,
-  catalog_type: "retail", moq: "",
+  catalog_type: "retail", moq: "", sku: "",
 };
 
 const AdminProducts = () => {
@@ -30,6 +30,8 @@ const AdminProducts = () => {
   const [form, setForm] = useState(emptyForm);
   const [variants, setVariants] = useState<VariantForm[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [galleryImages, setGalleryImages] = useState<{ id: string; url: string }[]>([]);
+  const [uploadingGallery, setUploadingGallery] = useState(false);
 
   const fetchProducts = async () => {
     const [{ data: prods }, { data: cats }, { data: allVariants }] = await Promise.all([
@@ -65,6 +67,27 @@ const AdminProducts = () => {
     setUploading(false);
   };
 
+  const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !editing) return;
+    setUploadingGallery(true);
+    const ext = file.name.split(".").pop();
+    const path = `gallery-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("product-images").upload(path, file);
+    if (error) { toast.error("Upload failed"); setUploadingGallery(false); return; }
+    const { data } = supabase.storage.from("product-images").getPublicUrl(path);
+    const { data: row, error: insertError } = await supabase.from("product_images")
+      .insert({ product_id: editing, url: data.publicUrl, sort_order: galleryImages.length }).select().single();
+    if (!insertError && row) setGalleryImages([...galleryImages, row]);
+    setUploadingGallery(false);
+    e.target.value = "";
+  };
+
+  const removeGalleryImage = async (id: string) => {
+    await supabase.from("product_images").delete().eq("id", id);
+    setGalleryImages(galleryImages.filter((g) => g.id !== id));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const payload = {
@@ -81,6 +104,7 @@ const AdminProducts = () => {
       is_active: form.is_active,
       catalog_type: form.catalog_type,
       moq: form.moq ? Number(form.moq) : null,
+      sku: form.sku.trim() || null,
     };
 
     let productId = editing;
@@ -126,6 +150,7 @@ const AdminProducts = () => {
         mrp: Number(v.mrp) || Number(v.price) || 0,
         stock: Number(v.stock) || 0,
         sort_order: i,
+        sku: v.sku.trim() || null,
       };
       const { error } = v.id
         ? await supabase.from("product_variants").update(row).eq("id", v.id)
@@ -141,10 +166,12 @@ const AdminProducts = () => {
       price: String(p.price), mrp: String(p.mrp), stock: String(p.stock),
       unit: p.unit, weight: p.weight || "", category_id: p.category_id || "",
       image_url: p.image_url || "", is_active: p.is_active,
-      catalog_type: p.catalog_type, moq: p.moq ? String(p.moq) : "",
+      catalog_type: p.catalog_type, moq: p.moq ? String(p.moq) : "", sku: p.sku || "",
     });
     const { data } = await supabase.from("product_variants").select("*").eq("product_id", p.id).order("sort_order");
-    setVariants((data || []).map((v) => ({ id: v.id, label: v.label, price: String(v.price), mrp: String(v.mrp), stock: String(v.stock) })));
+    setVariants((data || []).map((v) => ({ id: v.id, label: v.label, price: String(v.price), mrp: String(v.mrp), stock: String(v.stock), sku: v.sku || "" })));
+    const { data: images } = await supabase.from("product_images").select("id,url").eq("product_id", p.id).order("sort_order");
+    setGalleryImages(images || []);
     setEditing(p.id);
     setShowForm(true);
   };
@@ -160,7 +187,7 @@ const AdminProducts = () => {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Products ({products.length})</h1>
-        <button onClick={() => { setShowForm(true); setEditing(null); setForm(emptyForm); setVariants([]); }}
+        <button onClick={() => { setShowForm(true); setEditing(null); setForm(emptyForm); setVariants([]); setGalleryImages([]); }}
           className="flex items-center gap-1 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
           <Plus className="h-4 w-4" /> Add Product
         </button>
@@ -181,6 +208,11 @@ const AdminProducts = () => {
             <div>
               <label className="block text-sm font-medium mb-1">Slug</label>
               <input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })}
+                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">SKU</label>
+              <input value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} placeholder="e.g. TUR-500G"
                 className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
             </div>
             <div>
@@ -244,6 +276,30 @@ const AdminProducts = () => {
               {uploading && <p className="text-xs text-muted-foreground mt-1">Uploading...</p>}
               {form.image_url && <img src={form.image_url} alt="" className="mt-2 h-16 w-16 rounded object-cover" />}
             </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Additional Gallery Photos</label>
+              {editing ? (
+                <>
+                  <input type="file" accept="image/*" onChange={handleGalleryUpload} className="text-sm" />
+                  {uploadingGallery && <p className="text-xs text-muted-foreground mt-1">Uploading...</p>}
+                  {galleryImages.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {galleryImages.map((g) => (
+                        <div key={g.id} className="relative">
+                          <img src={g.url} alt="" className="h-16 w-16 rounded object-cover" />
+                          <button type="button" onClick={() => removeGalleryImage(g.id)}
+                            className="absolute -top-1.5 -right-1.5 rounded-full bg-destructive text-white p-0.5">
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <p className="text-xs text-muted-foreground">Save the product first, then edit it to add extra gallery photos.</p>
+              )}
+            </div>
             <div className="flex items-center gap-2">
               <input type="checkbox" checked={form.is_active} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} id="active" />
               <label htmlFor="active" className="text-sm">Active (visible in shop)</label>
@@ -263,7 +319,7 @@ const AdminProducts = () => {
               {variants.length > 0 && (
                 <div className="space-y-2">
                   {variants.map((v, i) => (
-                    <div key={i} className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-2 items-center">
+                    <div key={i} className="grid grid-cols-[1fr_auto_auto_auto_auto_auto] gap-2 items-center">
                       <input value={v.label} onChange={(e) => setVariants(variants.map((x, j) => j === i ? { ...x, label: e.target.value } : x))}
                         placeholder="Label (e.g. 500g)"
                         className="rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
@@ -273,6 +329,8 @@ const AdminProducts = () => {
                         placeholder="MRP" className="w-24 rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
                       <input type="number" value={v.stock} onChange={(e) => setVariants(variants.map((x, j) => j === i ? { ...x, stock: e.target.value } : x))}
                         placeholder="Stock" className="w-20 rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
+                      <input value={v.sku} onChange={(e) => setVariants(variants.map((x, j) => j === i ? { ...x, sku: e.target.value } : x))}
+                        placeholder="SKU" className="w-28 rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
                       <button type="button" onClick={() => setVariants(variants.filter((_, j) => j !== i))}
                         className="p-2 text-muted-foreground hover:text-destructive"><X className="h-4 w-4" /></button>
                     </div>
@@ -315,6 +373,7 @@ const AdminProducts = () => {
                           {p.weight}
                           {variantCounts[p.id] > 0 && <span className="ml-1 text-secondary font-medium">· {variantCounts[p.id]} variants</span>}
                         </p>
+                        {p.sku && <p className="text-xs text-muted-foreground font-mono">SKU: {p.sku}</p>}
                       </div>
                     </div>
                   </td>

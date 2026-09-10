@@ -23,13 +23,18 @@ import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import Blog from "./pages/Blog";
 import Contact from "./pages/Contact";
+import Legal from "./pages/Legal";
 import NotFound from "./pages/NotFound";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminProducts from "./pages/admin/AdminProducts";
 import AdminOrders from "./pages/admin/AdminOrders";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminCoupons from "./pages/admin/AdminCoupons";
+import AdminMessages from "./pages/admin/AdminMessages";
 import BulkUpload from "./pages/admin/BulkUpload";
+import AdminSeo from "./pages/admin/AdminSeo";
+import PrintInvoice from "./pages/admin/PrintInvoice";
+import SEOHead from "@/components/SEOHead";
 
 const queryClient = new QueryClient();
 
@@ -41,6 +46,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
         <CatalogModeProvider>
+          <SEOHead />
           <Routes>
             {/* Admin routes - no Layout wrapper */}
             <Route path="/admin" element={<AdminLayout><AdminDashboard /></AdminLayout>} />
@@ -48,7 +54,10 @@ const App = () => (
             <Route path="/admin/orders" element={<AdminLayout><AdminOrders /></AdminLayout>} />
             <Route path="/admin/users" element={<AdminLayout><AdminUsers /></AdminLayout>} />
             <Route path="/admin/coupons" element={<AdminLayout><AdminCoupons /></AdminLayout>} />
+            <Route path="/admin/messages" element={<AdminLayout><AdminMessages /></AdminLayout>} />
             <Route path="/admin/bulk-upload" element={<AdminLayout><BulkUpload /></AdminLayout>} />
+            <Route path="/admin/seo" element={<AdminLayout><AdminSeo /></AdminLayout>} />
+            <Route path="/admin/print-invoice/:orderId" element={<PrintInvoice />} />
 
             {/* Public routes with Layout */}
             <Route path="/" element={<Layout><Index /></Layout>} />
@@ -67,6 +76,7 @@ const App = () => (
             <Route path="/about" element={<Layout><About /></Layout>} />
             <Route path="/blog" element={<Layout><Blog /></Layout>} />
             <Route path="/contact" element={<Layout><Contact /></Layout>} />
+            <Route path="/legal/:page" element={<Layout><Legal /></Layout>} />
             <Route path="*" element={<Layout><NotFound /></Layout>} />
           </Routes>
         </CatalogModeProvider>

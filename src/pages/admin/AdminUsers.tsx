@@ -7,11 +7,18 @@ type ProfileWithRoles = Tables<"profiles"> & { user_roles: { role: string }[] | 
 
 const AdminUsers = () => {
   const [users, setUsers] = useState<ProfileWithRoles[]>([]);
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     supabase.from("profiles").select("*, user_roles(role)").order("created_at", { ascending: false })
       .then(({ data }) => setUsers((data as unknown as ProfileWithRoles[]) || []));
   }, []);
+
+  const filteredUsers = users.filter((u) => {
+    const q = search.trim().toLowerCase();
+    if (!q) return true;
+    return [u.full_name, u.phone, u.city, u.state].some((f) => f?.toLowerCase().includes(q));
+  });
 
   const toggleAdmin = async (userId: string, currentlyAdmin: boolean) => {
     if (currentlyAdmin) {
@@ -28,7 +35,13 @@ const AdminUsers = () => {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Users ({users.length})</h1>
+      <h1 className="text-2xl font-bold mb-4">Users ({users.length})</h1>
+      <input
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Search by name, phone, or location..."
+        className="w-full max-w-sm mb-4 rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary"
+      />
       <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -43,7 +56,7 @@ const AdminUsers = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {users.map((u) => {
+              {filteredUsers.map((u) => {
                 const roles = u.user_roles || [];
                 const isAdmin = roles.some((r) => r.role === "admin");
                 return (
@@ -68,6 +81,7 @@ const AdminUsers = () => {
               })}
             </tbody>
           </table>
+          {filteredUsers.length === 0 && <p className="p-6 text-center text-muted-foreground text-sm">No users match your search</p>}
         </div>
       </div>
     </div>

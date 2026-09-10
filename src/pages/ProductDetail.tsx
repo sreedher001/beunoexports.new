@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useWishlist } from "@/hooks/useWishlist";
 import { wholesaleEnquiryUrl, setBuyNowItem } from "@/lib/utils";
 import { ShoppingCart, Heart, Minus, Plus, ArrowLeft, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
+import ProductReviews from "@/components/ProductReviews";
 
 type Product = {
   id: string; name: string; slug: string; description: string | null;
@@ -15,6 +17,8 @@ type Product = {
 
 type Variant = { id: string; label: string; price: number; mrp: number; stock: number };
 
+type RelatedProduct = { id: string; name: string; slug: string; price: number; mrp: number; image_url: string | null };
+
 const ProductDetail = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
@@ -24,12 +28,23 @@ const ProductDetail = () => {
   const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null);
   const [qty, setQty] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [inWishlist, setInWishlist] = useState(false);
+  const [gallery, setGallery] = useState<string[]>([]);
+  const [activeImage, setActiveImage] = useState<string | null>(null);
+  const [related, setRelated] = useState<RelatedProduct[]>([]);
+  const { wishlistIds, toggle: toggleWishlist } = useWishlist();
+  const inWishlist = !!product && wishlistIds.has(product.id);
 
   useEffect(() => {
     supabase.from("products").select("*").eq("slug", slug).eq("is_active", true).single()
       .then(({ data }) => { setProduct(data); setLoading(false); });
   }, [slug]);
+
+  useEffect(() => {
+    if (!product) return;
+    setActiveImage(product.image_url);
+    supabase.from("product_images").select("url").eq("product_id", product.id).order("sort_order")
+      .then(({ data }) => setGallery(data?.map((d) => d.url) || []));
+  }, [product]);
 
   useEffect(() => {
     if (!product) return;
@@ -41,10 +56,16 @@ const ProductDetail = () => {
   }, [product]);
 
   useEffect(() => {
-    if (!user || !product) return;
-    supabase.from("wishlist_items").select("id").eq("user_id", user.id).eq("product_id", product.id).single()
-      .then(({ data }) => setInWishlist(!!data));
-  }, [user, product]);
+    if (!product || !product.category_id) { setRelated([]); return; }
+    supabase.from("products")
+      .select("id,name,slug,price,mrp,image_url")
+      .eq("is_active", true)
+      .eq("catalog_type", product.catalog_type)
+      .eq("category_id", product.category_id)
+      .neq("id", product.id)
+      .limit(4)
+      .then(({ data }) => setRelated(data || []));
+  }, [product]);
 
   const activePrice = selectedVariant?.price ?? product?.price ?? 0;
   const activeMrp = selectedVariant?.mrp ?? product?.mrp ?? 0;
@@ -85,20 +106,6 @@ const ProductDetail = () => {
     navigate("/checkout");
   };
 
-  const toggleWishlist = async () => {
-    if (!user) { toast.error("Please login"); return; }
-    if (!product) return;
-    if (inWishlist) {
-      await supabase.from("wishlist_items").delete().eq("user_id", user.id).eq("product_id", product.id);
-      setInWishlist(false);
-      toast.success("Removed from wishlist");
-    } else {
-      await supabase.from("wishlist_items").insert({ user_id: user.id, product_id: product.id });
-      setInWishlist(true);
-      toast.success("Added to wishlist!");
-    }
-  };
-
   if (loading) return (
     <div className="section-padding">
       <div className="container mx-auto max-w-5xl animate-pulse">
@@ -126,8 +133,20 @@ const ProductDetail = () => {
           <ArrowLeft className="h-4 w-4" /> Back
         </button>
         <div className="grid md:grid-cols-2 gap-8">
-          <div className="rounded-xl overflow-hidden border border-border shadow-md">
-            <img src={product.image_url || "/placeholder.svg"} alt={product.name} className="w-full aspect-square object-cover" />
+          <div>
+            <div className="rounded-xl overflow-hidden border border-border shadow-md">
+              <img src={activeImage || "/placeholder.svg"} alt={product.name} className="w-full aspect-square object-cover" />
+            </div>
+            {[product.image_url, ...gallery].filter(Boolean).length > 1 && (
+              <div className="flex gap-2 mt-3 overflow-x-auto">
+                {[product.image_url, ...gallery].filter((u): u is string => !!u).map((url, i) => (
+                  <button key={i} onClick={() => setActiveImage(url)}
+                    className={`h-16 w-16 shrink-0 rounded-lg overflow-hidden border-2 ${activeImage === url ? "border-secondary" : "border-transparent"}`}>
+                    <img src={url} alt="" className="h-full w-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <div>
             <h1 className="text-2xl md:text-3xl font-bold mb-2">{product.name}</h1>
@@ -198,7 +217,7 @@ const ProductDetail = () => {
                     className="flex-1 rounded-lg bg-secondary px-6 py-3 text-sm font-bold text-secondary-foreground shadow-md transition-all hover:shadow-lg active:scale-[0.97] disabled:opacity-50">
                     Buy Now
                   </button>
-                  <button onClick={toggleWishlist}
+                  <button onClick={() => toggleWishlist(product.id)}
                     className={`rounded-lg border px-4 py-3 transition-all active:scale-[0.97] ${inWishlist ? "bg-accent/10 border-accent text-accent" : "border-border text-muted-foreground hover:text-accent"}`}>
                     <Heart className={`h-5 w-5 ${inWishlist ? "fill-current" : ""}`} />
                   </button>
@@ -216,6 +235,30 @@ const ProductDetail = () => {
             )}
           </div>
         </div>
+        <ProductReviews productId={product.id} />
+
+        {related.length > 0 && (
+          <div className="mt-12">
+            <h3 className="font-semibold text-lg mb-4">You May Also Like</h3>
+            <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+              {related.map((p) => (
+                <Link key={p.id} to={`/product/${p.slug}`} className="group rounded-xl border border-border bg-card shadow-sm overflow-hidden hover:shadow-lg transition-shadow">
+                  <div className="aspect-square overflow-hidden">
+                    <img src={p.image_url || "/placeholder.svg"} alt={p.name}
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
+                  </div>
+                  <div className="p-3">
+                    <h4 className="font-medium text-sm line-clamp-2 mb-1">{p.name}</h4>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-sm">₹{p.price}</span>
+                      {p.mrp > p.price && <span className="text-xs text-muted-foreground line-through">₹{p.mrp}</span>}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

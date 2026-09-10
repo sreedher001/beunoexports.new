@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCatalogMode } from "@/contexts/CatalogModeContext";
+import { useWishlist } from "@/hooks/useWishlist";
 import { wholesaleEnquiryUrl, setBuyNowItem } from "@/lib/utils";
 import ScrollReveal from "@/components/ScrollReveal";
 import heroImg from "@/assets/hero-spices.jpg";
@@ -36,7 +37,7 @@ const Index = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [variantInfo, setVariantInfo] = useState<Record<string, { minPrice: number; minMrp: number }>>({});
-  const [wishlistIds, setWishlistIds] = useState<Set<string>>(new Set());
+  const { wishlistIds, toggle: toggleWishlist } = useWishlist();
 
   useEffect(() => {
     supabase.from("products").select("id,name,slug,price,mrp,image_url,weight,unit,moq,stock")
@@ -57,12 +58,6 @@ const Index = () => {
       .then(({ data }) => setCategories(data || []));
   }, [mode]);
 
-  useEffect(() => {
-    if (!user) return;
-    supabase.from("wishlist_items").select("product_id").eq("user_id", user.id)
-      .then(({ data }) => setWishlistIds(new Set(data?.map((w) => w.product_id) || [])));
-  }, [user]);
-
   const disc = (mrp: number, price: number) => mrp > price ? Math.round(((mrp - price) / mrp) * 100) : 0;
 
   const addToCart = async (product: Product) => {
@@ -82,19 +77,6 @@ const Index = () => {
   const buyNow = (product: Product) => {
     setBuyNowItem({ product_id: product.id, variant_id: null, quantity: 1 });
     navigate("/checkout");
-  };
-
-  const toggleWishlist = async (productId: string) => {
-    if (!user) { toast.error("Please login to use wishlist"); return; }
-    if (wishlistIds.has(productId)) {
-      await supabase.from("wishlist_items").delete().eq("user_id", user.id).eq("product_id", productId);
-      setWishlistIds((prev) => { const n = new Set(prev); n.delete(productId); return n; });
-      toast.success("Removed from wishlist");
-    } else {
-      await supabase.from("wishlist_items").insert({ user_id: user.id, product_id: productId });
-      setWishlistIds((prev) => new Set(prev).add(productId));
-      toast.success("Added to wishlist!");
-    }
   };
 
   return (

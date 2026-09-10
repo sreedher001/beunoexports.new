@@ -5,6 +5,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Trash2, Minus, Plus, ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
 
+const APPLIED_COUPON_KEY = "appliedCoupon";
+
 type CartItem = {
   id: string;
   quantity: number;
@@ -22,6 +24,16 @@ const Cart = () => {
   const navigate = useNavigate();
   const [items, setItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [shippingSettings, setShippingSettings] = useState({ flat_shipping_rate: 0, free_shipping_threshold: null as number | null });
+  const [couponInput, setCouponInput] = useState("");
+  const [couponApplying, setCouponApplying] = useState(false);
+  const [couponError, setCouponError] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number } | null>(null);
+
+  useEffect(() => {
+    supabase.from("site_settings").select("flat_shipping_rate,free_shipping_threshold").eq("id", true).single()
+      .then(({ data }) => { if (data) setShippingSettings(data); });
+  }, []);
 
   const fetchCart = useCallback(async () => {
     if (!user) return;
@@ -53,6 +65,32 @@ const Cart = () => {
   };
 
   const total = items.reduce((sum, i) => sum + linePrice(i) * i.quantity, 0);
+  const shipping = shippingSettings.free_shipping_threshold != null && total >= shippingSettings.free_shipping_threshold
+    ? 0 : shippingSettings.flat_shipping_rate;
+  const discount = appliedCoupon?.discount ?? 0;
+  const grandTotal = Math.max(0, total - discount) + shipping;
+
+  const applyCoupon = async () => {
+    const code = couponInput.trim();
+    if (!code) return;
+    setCouponApplying(true);
+    setCouponError("");
+    const { data, error } = await supabase.rpc("validate_coupon", { _code: code, _order_amount: total });
+    setCouponApplying(false);
+    const result = data?.[0];
+    if (error || !result) { setCouponError("Failed to check coupon"); return; }
+    if (!result.valid) { setCouponError(result.message); setAppliedCoupon(null); return; }
+    setAppliedCoupon({ code, discount: result.discount_amount });
+    sessionStorage.setItem(APPLIED_COUPON_KEY, JSON.stringify({ code }));
+    toast.success(result.message);
+  };
+
+  const removeCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponInput("");
+    setCouponError("");
+    sessionStorage.removeItem(APPLIED_COUPON_KEY);
+  };
 
   if (!user) return (
     <div className="section-padding text-center">
@@ -114,12 +152,42 @@ const Cart = () => {
             <div>
               <div className="rounded-xl border border-border bg-card p-6 shadow-sm sticky top-24">
                 <h3 className="font-semibold mb-4">Order Summary</h3>
+
+                <div className="mb-4">
+                  {appliedCoupon ? (
+                    <div className="flex items-center justify-between rounded-lg bg-green-50 px-3 py-2 text-sm">
+                      <span className="text-green-700 font-medium">"{appliedCoupon.code}" applied</span>
+                      <button type="button" onClick={removeCoupon} className="text-xs text-muted-foreground hover:text-destructive underline">Remove</button>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="flex gap-2">
+                        <input value={couponInput} onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                          placeholder="Coupon code"
+                          className="flex-1 rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
+                        <button type="button" onClick={applyCoupon} disabled={couponApplying || !couponInput.trim()}
+                          className="rounded-lg border border-border px-4 py-2 text-sm font-semibold hover:bg-muted disabled:opacity-50">
+                          {couponApplying ? "..." : "Apply"}
+                        </button>
+                      </div>
+                      {couponError && <p className="text-xs text-destructive mt-1">{couponError}</p>}
+                    </div>
+                  )}
+                </div>
+
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>₹{total}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Delivery</span><span className="text-green-600">Free</span></div>
-                  <div className="border-t border-border pt-2 mt-2 flex justify-between font-bold text-lg">
-                    <span>Total</span><span>₹{total}</span>
+                  {discount > 0 && (
+                    <div className="flex justify-between text-green-600"><span>Discount</span><span>-₹{discount}</span></div>
+                  )}
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Delivery</span>
+                    <span className={shipping === 0 ? "text-green-600" : ""}>{shipping === 0 ? "Free" : `₹${shipping}`}</span>
                   </div>
+                  <div className="border-t border-border pt-2 mt-2 flex justify-between font-bold text-lg">
+                    <span>Total</span><span>₹{grandTotal}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Taxes are calculated at checkout.</p>
                 </div>
                 <button onClick={() => navigate("/checkout")}
                   className="w-full mt-6 rounded-lg bg-secondary px-6 py-3 text-sm font-bold text-secondary-foreground shadow-md transition-all hover:shadow-lg active:scale-[0.97]">
