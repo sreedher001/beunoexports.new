@@ -5,13 +5,31 @@ import type { Tables } from "@/integrations/supabase/types";
 
 type ProfileWithRoles = Tables<"profiles"> & { user_roles: { role: string }[] | null };
 
+// profiles.user_id and user_roles.user_id both reference auth.users(id), but
+// there's no direct FK between the two tables, so PostgREST can't auto-embed
+// one inside the other — fetch separately and merge by user_id instead.
+const fetchUsersWithRoles = async (): Promise<ProfileWithRoles[]> => {
+  const [{ data: profiles, error: profilesError }, { data: roles, error: rolesError }] = await Promise.all([
+    supabase.from("profiles").select("*").order("created_at", { ascending: false }),
+    supabase.from("user_roles").select("user_id, role"),
+  ]);
+  if (profilesError) { toast.error("Failed to load users: " + profilesError.message); return []; }
+  if (rolesError) { toast.error("Failed to load user roles: " + rolesError.message); }
+  const rolesByUser = new Map<string, { role: string }[]>();
+  (roles || []).forEach((r) => {
+    const list = rolesByUser.get(r.user_id) || [];
+    list.push({ role: r.role });
+    rolesByUser.set(r.user_id, list);
+  });
+  return (profiles || []).map((p) => ({ ...p, user_roles: rolesByUser.get(p.user_id) || [] }));
+};
+
 const AdminUsers = () => {
   const [users, setUsers] = useState<ProfileWithRoles[]>([]);
   const [search, setSearch] = useState("");
 
   useEffect(() => {
-    supabase.from("profiles").select("*, user_roles(role)").order("created_at", { ascending: false })
-      .then(({ data }) => setUsers((data as unknown as ProfileWithRoles[]) || []));
+    fetchUsersWithRoles().then(setUsers);
   }, []);
 
   const filteredUsers = users.filter((u) => {
@@ -28,9 +46,7 @@ const AdminUsers = () => {
       await supabase.from("user_roles").insert({ user_id: userId, role: "admin" });
       toast.success("Admin role added");
     }
-    // Refresh
-    const { data } = await supabase.from("profiles").select("*, user_roles(role)").order("created_at", { ascending: false });
-    setUsers((data as unknown as ProfileWithRoles[]) || []);
+    setUsers(await fetchUsersWithRoles());
   };
 
   return (
