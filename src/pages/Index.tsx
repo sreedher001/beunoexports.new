@@ -34,12 +34,12 @@ const defaultBanners: Record<"retail" | "wholesale", BannerContent> = {
   },
 };
 
-type BannerSettingsRow = {
-  banner_retail_image_url: string | null; banner_retail_title: string | null; banner_retail_subtitle: string | null;
-  banner_retail_cta_text: string | null; banner_retail_cta_link: string | null;
-  banner_wholesale_image_url: string | null; banner_wholesale_title: string | null; banner_wholesale_subtitle: string | null;
-  banner_wholesale_cta_text: string | null; banner_wholesale_cta_link: string | null;
+type BannerRow = {
+  id: string; image_url: string | null; title: string | null; subtitle: string | null;
+  cta_text: string | null; cta_link: string | null;
 };
+
+const BANNER_ROTATE_MS = 6000;
 
 const whyUs = [
   { icon: ShieldCheck, title: "Certified Quality", desc: "FSSAI, ISO & export-grade standards" },
@@ -62,20 +62,31 @@ const Index = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [variantInfo, setVariantInfo] = useState<Record<string, { minPrice: number; minMrp: number }>>({});
   const { wishlistIds, toggle: toggleWishlist } = useWishlist();
-  const [bannerSettings, setBannerSettings] = useState<BannerSettingsRow | null>(null);
+  const [modeBanners, setModeBanners] = useState<BannerRow[]>([]);
+  const [bannerIndex, setBannerIndex] = useState(0);
 
   useEffect(() => {
-    supabase.from("site_settings")
-      .select("banner_retail_image_url,banner_retail_title,banner_retail_subtitle,banner_retail_cta_text,banner_retail_cta_link,banner_wholesale_image_url,banner_wholesale_title,banner_wholesale_subtitle,banner_wholesale_cta_text,banner_wholesale_cta_link")
-      .eq("id", true).single().then(({ data }) => setBannerSettings(data));
-  }, []);
+    setBannerIndex(0);
+    supabase.from("banners").select("id,image_url,title,subtitle,cta_text,cta_link")
+      .eq("mode", mode).order("sort_order")
+      .then(({ data }) => setModeBanners(data || []));
+  }, [mode]);
 
+  useEffect(() => {
+    if (modeBanners.length < 2) return;
+    const timer = setInterval(() => {
+      setBannerIndex((i) => (i + 1) % modeBanners.length);
+    }, BANNER_ROTATE_MS);
+    return () => clearInterval(timer);
+  }, [modeBanners]);
+
+  const activeBannerRow = modeBanners[bannerIndex];
   const banner: BannerContent = {
-    image_url: bannerSettings?.[`banner_${mode}_image_url`] || defaultBanners[mode].image_url,
-    title: bannerSettings?.[`banner_${mode}_title`] || defaultBanners[mode].title,
-    subtitle: bannerSettings?.[`banner_${mode}_subtitle`] || defaultBanners[mode].subtitle,
-    cta_text: bannerSettings?.[`banner_${mode}_cta_text`] || defaultBanners[mode].cta_text,
-    cta_link: bannerSettings?.[`banner_${mode}_cta_link`] || defaultBanners[mode].cta_link,
+    image_url: activeBannerRow?.image_url || defaultBanners[mode].image_url,
+    title: activeBannerRow?.title || defaultBanners[mode].title,
+    subtitle: activeBannerRow?.subtitle || defaultBanners[mode].subtitle,
+    cta_text: activeBannerRow?.cta_text || defaultBanners[mode].cta_text,
+    cta_link: activeBannerRow?.cta_link || defaultBanners[mode].cta_link,
   };
 
   useEffect(() => {
@@ -113,11 +124,12 @@ const Index = () => {
       {/* Hero */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0">
-          <img src={banner.image_url || heroImg} alt={banner.title} className="h-full w-full object-cover" loading="eager" />
+          <img key={banner.image_url || "default"} src={banner.image_url || heroImg} alt={banner.title}
+            className="h-full w-full object-cover animate-fade-in" loading="eager" />
           <div className="absolute inset-0 bg-primary/75" />
         </div>
         <div className="relative container mx-auto px-4 py-24 md:py-36 lg:py-44 lg:px-8">
-          <div className="max-w-2xl">
+          <div key={bannerIndex} className="max-w-2xl">
             <h1 className="text-primary-foreground text-balance mb-6 animate-fade-up" style={{ lineHeight: 1.1 }}>
               {banner.title}
             </h1>
@@ -135,6 +147,14 @@ const Index = () => {
               </Link>
             </div>
           </div>
+          {modeBanners.length > 1 && (
+            <div className="mt-10 flex gap-2">
+              {modeBanners.map((b, i) => (
+                <button key={b.id} type="button" onClick={() => setBannerIndex(i)} aria-label={`Show banner ${i + 1}`}
+                  className={`h-2 rounded-full transition-all ${i === bannerIndex ? "w-6 bg-primary-foreground" : "w-2 bg-primary-foreground/40"}`} />
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
