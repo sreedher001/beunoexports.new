@@ -13,7 +13,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const FROM_EMAIL = "orders@beunoexports.com"; // must be a Resend-verified sending domain
+const FROM_EMAIL = "orders@buenoexports.com"; // must be a Resend-verified sending domain
 
 function escapeHtml(value: unknown): string {
   return String(value ?? "")
