@@ -7,6 +7,7 @@
 // The webhook payload shape is { type: "INSERT"|"UPDATE", table, record, old_record }.
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -60,9 +61,37 @@ serve(async (req) => {
       body: JSON.stringify({ from: FROM_EMAIL, to: order.email, subject, html }),
     });
 
-    if (!res.ok) {
-      const err = await res.text();
-      return new Response(JSON.stringify({ error: err }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    let customerEmailError: string | null = null;
+    if (!res.ok) customerEmailError = await res.text();
+
+    // Also notify the store admin at the same address configured for
+    // contact-form submissions (Admin -> SEO -> Contact Form Notification Email).
+    if (isNew) {
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+      const supabase = createClient(supabaseUrl, anonKey);
+      const { data: settings } = await supabase.from("site_settings").select("contact_notification_email").eq("id", true).single();
+      const notifyEmail = settings?.contact_notification_email;
+
+      if (notifyEmail) {
+        const adminHtml = `<h2>New Order Received</h2>
+          <p><strong>Order #:</strong> ${orderNumber}</p>
+          <p><strong>Customer:</strong> ${escapeHtml(order.full_name)}</p>
+          <p><strong>Email:</strong> ${escapeHtml(order.email)}</p>
+          <p><strong>Phone:</strong> ${escapeHtml(order.phone)}</p>
+          <p><strong>Total:</strong> ₹${totalAmount}</p>
+          <p><strong>Address:</strong> ${escapeHtml(order.address)}, ${escapeHtml(order.city)}, ${escapeHtml(order.state)} - ${escapeHtml(order.pincode)}</p>`;
+
+        await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ from: FROM_EMAIL, to: notifyEmail, subject: `New Order - ${orderNumber}`, html: adminHtml }),
+        });
+      }
+    }
+
+    if (customerEmailError) {
+      return new Response(JSON.stringify({ error: customerEmailError }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     return new Response(JSON.stringify({ sent: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
