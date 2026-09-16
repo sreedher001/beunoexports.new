@@ -145,7 +145,7 @@ const AdminSeo = () => {
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Contact Form Notification Email" hint="Where new Contact page submissions are emailed. Leave blank to disable email alerts (submissions still appear under Admin → Messages).">
             <input type="email" className={inputCls} value={settings.contact_notification_email ?? ""}
-              onChange={(e) => setSettings({ ...settings, contact_notification_email: e.target.value })} placeholder="you@beunoexports.com" />
+              onChange={(e) => setSettings({ ...settings, contact_notification_email: e.target.value })} placeholder="you@buenoexports.com" />
           </Field>
           <Field label="Low Stock Alert Threshold" hint="Products/variants at or below this stock level show up on the Dashboard">
             <input type="number" min={0} className={inputCls} value={settings.low_stock_threshold}
