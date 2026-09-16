@@ -35,7 +35,7 @@ const AdminUsers = () => {
   const filteredUsers = users.filter((u) => {
     const q = search.trim().toLowerCase();
     if (!q) return true;
-    return [u.full_name, u.phone, u.city, u.state].some((f) => f?.toLowerCase().includes(q));
+    return [u.full_name, u.phone, u.email, u.city, u.state].some((f) => f?.toLowerCase().includes(q));
   });
 
   const toggleAdmin = async (userId: string, currentlyAdmin: boolean) => {
@@ -55,7 +55,7 @@ const AdminUsers = () => {
       <input
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search by name, phone, or location..."
+        placeholder="Search by name, phone, email, or location..."
         className="w-full max-w-sm mb-4 rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary"
       />
       <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
@@ -64,6 +64,7 @@ const AdminUsers = () => {
             <thead className="border-b border-border bg-muted/50">
               <tr>
                 <th className="px-4 py-3 text-left font-medium">Name</th>
+                <th className="px-4 py-3 text-left font-medium">Email</th>
                 <th className="px-4 py-3 text-left font-medium">Phone</th>
                 <th className="px-4 py-3 text-left font-medium">Location</th>
                 <th className="px-4 py-3 text-left font-medium">Role</th>
@@ -78,6 +79,7 @@ const AdminUsers = () => {
                 return (
                   <tr key={u.id} className="hover:bg-muted/30">
                     <td className="px-4 py-3 font-medium">{u.full_name || "—"}</td>
+                    <td className="px-4 py-3">{u.email || "—"}</td>
                     <td className="px-4 py-3">{u.phone || "—"}</td>
                     <td className="px-4 py-3 text-muted-foreground">{[u.city, u.state].filter(Boolean).join(", ") || "—"}</td>
                     <td className="px-4 py-3">
