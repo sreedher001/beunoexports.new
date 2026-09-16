@@ -243,16 +243,6 @@ export type Database = {
           runner_text: string | null
           contact_notification_email: string | null
           low_stock_threshold: number
-          banner_retail_image_url: string | null
-          banner_retail_title: string | null
-          banner_retail_subtitle: string | null
-          banner_retail_cta_text: string | null
-          banner_retail_cta_link: string | null
-          banner_wholesale_image_url: string | null
-          banner_wholesale_title: string | null
-          banner_wholesale_subtitle: string | null
-          banner_wholesale_cta_text: string | null
-          banner_wholesale_cta_link: string | null
           updated_at: string
         }
         Insert: {
@@ -272,16 +262,6 @@ export type Database = {
           runner_text?: string | null
           contact_notification_email?: string | null
           low_stock_threshold?: number
-          banner_retail_image_url?: string | null
-          banner_retail_title?: string | null
-          banner_retail_subtitle?: string | null
-          banner_retail_cta_text?: string | null
-          banner_retail_cta_link?: string | null
-          banner_wholesale_image_url?: string | null
-          banner_wholesale_title?: string | null
-          banner_wholesale_subtitle?: string | null
-          banner_wholesale_cta_text?: string | null
-          banner_wholesale_cta_link?: string | null
           updated_at?: string
         }
         Update: {
@@ -301,16 +281,45 @@ export type Database = {
           runner_text?: string | null
           contact_notification_email?: string | null
           low_stock_threshold?: number
-          banner_retail_image_url?: string | null
-          banner_retail_title?: string | null
-          banner_retail_subtitle?: string | null
-          banner_retail_cta_text?: string | null
-          banner_retail_cta_link?: string | null
-          banner_wholesale_image_url?: string | null
-          banner_wholesale_title?: string | null
-          banner_wholesale_subtitle?: string | null
-          banner_wholesale_cta_text?: string | null
-          banner_wholesale_cta_link?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      banners: {
+        Row: {
+          id: string
+          mode: string
+          sort_order: number
+          image_url: string | null
+          title: string | null
+          subtitle: string | null
+          cta_text: string | null
+          cta_link: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          mode: string
+          sort_order?: number
+          image_url?: string | null
+          title?: string | null
+          subtitle?: string | null
+          cta_text?: string | null
+          cta_link?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          mode?: string
+          sort_order?: number
+          image_url?: string | null
+          title?: string | null
+          subtitle?: string | null
+          cta_text?: string | null
+          cta_link?: string | null
+          created_at?: string
           updated_at?: string
         }
         Relationships: []
