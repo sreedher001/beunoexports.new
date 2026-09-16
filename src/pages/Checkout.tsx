@@ -240,7 +240,13 @@ const Checkout = () => {
     // Fire the confirmation email directly so it doesn't depend on a Database Webhook
     // being configured in the Supabase dashboard. Best-effort — never blocks checkout.
     supabase.functions.invoke("send-order-email", {
-      body: { type: "INSERT", table: "orders", record: { order_number: order.order_number, total_amount: order.total_amount, email: form.email, status: "pending" } },
+      body: {
+        type: "INSERT", table: "orders",
+        record: {
+          order_number: order.order_number, total_amount: order.total_amount, email: form.email, status: "pending",
+          full_name: form.full_name, phone: form.phone, address: form.address, city: form.city, state: form.state, pincode: form.pincode,
+        },
+      },
     }).catch(() => {});
 
     toast.success("Order placed successfully!");
