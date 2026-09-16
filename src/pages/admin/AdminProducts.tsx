@@ -8,17 +8,18 @@ type Product = {
   price: number; mrp: number; image_url: string | null; stock: number;
   unit: string; weight: string | null; category_id: string | null; is_active: boolean;
   catalog_type: string; moq: number | null; sku: string | null;
+  is_bestseller: boolean; order_count: number | null;
 };
 
 type Category = { id: string; name: string; slug: string };
 
-type VariantForm = { id?: string; label: string; price: string; mrp: string; stock: string; sku: string };
+type VariantForm = { id?: string; label: string; price: string; mrp: string; stock: string; sku: string; is_bestseller: boolean; order_count: string };
 
-const emptyVariant: VariantForm = { label: "", price: "", mrp: "", stock: "", sku: "" };
+const emptyVariant: VariantForm = { label: "", price: "", mrp: "", stock: "", sku: "", is_bestseller: false, order_count: "" };
 
 const emptyForm = {
   name: "", slug: "", description: "", price: "", mrp: "", stock: "", unit: "kg", weight: "", category_id: "", image_url: "", is_active: true,
-  catalog_type: "retail", moq: "", sku: "",
+  catalog_type: "retail", moq: "", sku: "", is_bestseller: false, order_count: "",
 };
 
 const AdminProducts = () => {
@@ -105,6 +106,8 @@ const AdminProducts = () => {
       catalog_type: form.catalog_type,
       moq: form.moq ? Number(form.moq) : null,
       sku: form.sku.trim() || null,
+      is_bestseller: form.is_bestseller,
+      order_count: form.order_count.trim() ? Number(form.order_count) : null,
     };
 
     let productId = editing;
@@ -151,6 +154,8 @@ const AdminProducts = () => {
         stock: Number(v.stock) || 0,
         sort_order: i,
         sku: v.sku.trim() || null,
+        is_bestseller: v.is_bestseller,
+        order_count: v.order_count.trim() ? Number(v.order_count) : null,
       };
       const { error } = v.id
         ? await supabase.from("product_variants").update(row).eq("id", v.id)
@@ -167,9 +172,13 @@ const AdminProducts = () => {
       unit: p.unit, weight: p.weight || "", category_id: p.category_id || "",
       image_url: p.image_url || "", is_active: p.is_active,
       catalog_type: p.catalog_type, moq: p.moq ? String(p.moq) : "", sku: p.sku || "",
+      is_bestseller: p.is_bestseller, order_count: p.order_count != null ? String(p.order_count) : "",
     });
     const { data } = await supabase.from("product_variants").select("*").eq("product_id", p.id).order("sort_order");
-    setVariants((data || []).map((v) => ({ id: v.id, label: v.label, price: String(v.price), mrp: String(v.mrp), stock: String(v.stock), sku: v.sku || "" })));
+    setVariants((data || []).map((v) => ({
+      id: v.id, label: v.label, price: String(v.price), mrp: String(v.mrp), stock: String(v.stock), sku: v.sku || "",
+      is_bestseller: v.is_bestseller, order_count: v.order_count != null ? String(v.order_count) : "",
+    })));
     const { data: images } = await supabase.from("product_images").select("id,url").eq("product_id", p.id).order("sort_order");
     setGalleryImages(images || []);
     setEditing(p.id);
@@ -304,6 +313,17 @@ const AdminProducts = () => {
               <input type="checkbox" checked={form.is_active} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} id="active" />
               <label htmlFor="active" className="text-sm">Active (visible in shop)</label>
             </div>
+            <div className="flex items-center gap-2">
+              <input type="checkbox" checked={form.is_bestseller} onChange={(e) => setForm({ ...form, is_bestseller: e.target.checked })} id="bestseller" />
+              <label htmlFor="bestseller" className="text-sm">⭐ Best Seller badge</label>
+            </div>
+            <div className="sm:col-span-2">
+              <label htmlFor="product-order-count" className="block text-sm font-medium mb-1">Orders This Month (optional)</label>
+              <input id="product-order-count" type="number" min={0} value={form.order_count} onChange={(e) => setForm({ ...form, order_count: e.target.value })}
+                placeholder="e.g. 1000"
+                className="w-full max-w-xs rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
+              <p className="text-xs text-muted-foreground mt-1">Shown on the storefront as "{form.order_count || "N"}+ orders this month". You set this by hand — it does not update automatically, so remember to change it next month. Leave blank to hide it.</p>
+            </div>
 
             <div className="sm:col-span-2 border-t border-border pt-4 mt-2">
               <div className="flex items-center justify-between mb-2">
@@ -319,20 +339,36 @@ const AdminProducts = () => {
               {variants.length > 0 && (
                 <div className="space-y-2">
                   {variants.map((v, i) => (
-                    <div key={i} className="grid grid-cols-2 gap-2 items-center rounded-lg border border-border p-3 sm:grid-cols-[1fr_auto_auto_auto_auto_auto] sm:border-0 sm:p-0">
-                      <input value={v.label} onChange={(e) => setVariants(variants.map((x, j) => j === i ? { ...x, label: e.target.value } : x))}
-                        placeholder="Label (e.g. 500g)" aria-label={`Variant ${i + 1} label`}
-                        className="col-span-2 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary sm:col-span-1" />
-                      <input type="number" value={v.price} onChange={(e) => setVariants(variants.map((x, j) => j === i ? { ...x, price: e.target.value } : x))}
-                        placeholder="Price" aria-label={`Variant ${i + 1} price`} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary sm:w-24" />
-                      <input type="number" value={v.mrp} onChange={(e) => setVariants(variants.map((x, j) => j === i ? { ...x, mrp: e.target.value } : x))}
-                        placeholder="MRP" aria-label={`Variant ${i + 1} MRP`} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary sm:w-24" />
-                      <input type="number" value={v.stock} onChange={(e) => setVariants(variants.map((x, j) => j === i ? { ...x, stock: e.target.value } : x))}
-                        placeholder="Stock" aria-label={`Variant ${i + 1} stock`} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary sm:w-20" />
-                      <input value={v.sku} onChange={(e) => setVariants(variants.map((x, j) => j === i ? { ...x, sku: e.target.value } : x))}
-                        placeholder="SKU" aria-label={`Variant ${i + 1} SKU`} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary sm:w-28" />
-                      <button type="button" onClick={() => setVariants(variants.filter((_, j) => j !== i))} aria-label={`Remove variant ${i + 1}`}
-                        className="justify-self-end p-2 text-muted-foreground hover:text-destructive sm:justify-self-auto"><X className="h-4 w-4" /></button>
+                    <div key={i} className="rounded-lg border border-border p-3 space-y-2">
+                      <div className="grid grid-cols-2 gap-2 items-center sm:grid-cols-[1fr_auto_auto_auto_auto_auto]">
+                        <input value={v.label} onChange={(e) => setVariants(variants.map((x, j) => j === i ? { ...x, label: e.target.value } : x))}
+                          placeholder="Label (e.g. 500g)" aria-label={`Variant ${i + 1} label`}
+                          className="col-span-2 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary sm:col-span-1" />
+                        <input type="number" value={v.price} onChange={(e) => setVariants(variants.map((x, j) => j === i ? { ...x, price: e.target.value } : x))}
+                          placeholder="Price" aria-label={`Variant ${i + 1} price`} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary sm:w-24" />
+                        <input type="number" value={v.mrp} onChange={(e) => setVariants(variants.map((x, j) => j === i ? { ...x, mrp: e.target.value } : x))}
+                          placeholder="MRP" aria-label={`Variant ${i + 1} MRP`} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary sm:w-24" />
+                        <input type="number" value={v.stock} onChange={(e) => setVariants(variants.map((x, j) => j === i ? { ...x, stock: e.target.value } : x))}
+                          placeholder="Stock" aria-label={`Variant ${i + 1} stock`} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary sm:w-20" />
+                        <input value={v.sku} onChange={(e) => setVariants(variants.map((x, j) => j === i ? { ...x, sku: e.target.value } : x))}
+                          placeholder="SKU" aria-label={`Variant ${i + 1} SKU`} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-secondary sm:w-28" />
+                        <button type="button" onClick={() => setVariants(variants.filter((_, j) => j !== i))} aria-label={`Remove variant ${i + 1}`}
+                          className="justify-self-end p-2 text-muted-foreground hover:text-destructive sm:justify-self-auto"><X className="h-4 w-4" /></button>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-3 border-t border-border pt-2">
+                        <label className="flex items-center gap-1.5 text-xs">
+                          <input type="checkbox" checked={v.is_bestseller}
+                            onChange={(e) => setVariants(variants.map((x, j) => j === i ? { ...x, is_bestseller: e.target.checked } : x))} />
+                          ⭐ Best Seller
+                        </label>
+                        <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <input type="number" min={0} value={v.order_count}
+                            onChange={(e) => setVariants(variants.map((x, j) => j === i ? { ...x, order_count: e.target.value } : x))}
+                            placeholder="e.g. 500" aria-label={`Variant ${i + 1} orders this month`}
+                            className="w-24 rounded-lg border border-input bg-background px-2 py-1 text-xs outline-none focus:border-secondary" />
+                          orders this month
+                        </label>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -368,10 +404,11 @@ const AdminProducts = () => {
                     <div className="flex items-center gap-3">
                       <img src={p.image_url || "/placeholder.svg"} alt={p.name} className="h-10 w-10 rounded object-cover" />
                       <div>
-                        <p className="font-medium">{p.name}</p>
+                        <p className="font-medium">{p.name} {p.is_bestseller && <span title="Best Seller">⭐</span>}</p>
                         <p className="text-xs text-muted-foreground">
                           {p.weight}
                           {variantCounts[p.id] > 0 && <span className="ml-1 text-secondary font-medium">· {variantCounts[p.id]} variants</span>}
+                          {p.order_count != null && <span className="ml-1">· {p.order_count}+ orders/mo</span>}
                         </p>
                         {p.sku && <p className="text-xs text-muted-foreground font-mono">SKU: {p.sku}</p>}
                       </div>

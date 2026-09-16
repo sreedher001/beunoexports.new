@@ -13,9 +13,10 @@ type Product = {
   price: number; mrp: number; image_url: string | null; stock: number;
   unit: string; weight: string | null; category_id: string | null;
   catalog_type: string; moq: number | null;
+  is_bestseller: boolean; order_count: number | null;
 };
 
-type Variant = { id: string; label: string; price: number; mrp: number; stock: number };
+type Variant = { id: string; label: string; price: number; mrp: number; stock: number; is_bestseller: boolean; order_count: number | null };
 
 type RelatedProduct = { id: string; name: string; slug: string; price: number; mrp: number; image_url: string | null };
 
@@ -70,6 +71,8 @@ const ProductDetail = () => {
   const activePrice = selectedVariant?.price ?? product?.price ?? 0;
   const activeMrp = selectedVariant?.mrp ?? product?.mrp ?? 0;
   const activeStock = selectedVariant?.stock ?? product?.stock ?? 0;
+  const activeBestseller = selectedVariant ? selectedVariant.is_bestseller : (product?.is_bestseller ?? false);
+  const activeOrderCount = selectedVariant ? selectedVariant.order_count : (product?.order_count ?? null);
 
   const selectVariant = (v: Variant) => {
     setSelectedVariant(v);
@@ -115,8 +118,13 @@ const ProductDetail = () => {
         </button>
         <div className="grid md:grid-cols-2 gap-8">
           <div>
-            <div className="rounded-xl overflow-hidden border border-border shadow-md">
+            <div className="relative rounded-xl overflow-hidden border border-border shadow-md">
               <img src={activeImage || "/placeholder.svg"} alt={product.name} loading="eager" className="w-full aspect-square object-cover" />
+              {activeBestseller && (
+                <span className="absolute top-3 right-3 bg-primary text-primary-foreground text-xs font-bold px-2.5 py-1.5 rounded">
+                  ⭐ Best Seller
+                </span>
+              )}
             </div>
             {[product.image_url, ...gallery].filter(Boolean).length > 1 && (
               <div className="flex gap-2 mt-3 overflow-x-auto">
@@ -131,7 +139,8 @@ const ProductDetail = () => {
           </div>
           <div>
             <h1 className="text-2xl md:text-3xl font-bold mb-2">{product.name}</h1>
-            {product.weight && <p className="text-muted-foreground mb-4">{product.weight}</p>}
+            {product.weight && <p className="text-muted-foreground mb-2">{product.weight}</p>}
+            {activeOrderCount != null && <p className="text-sm font-medium text-secondary mb-4">{activeOrderCount}+ orders this month</p>}
 
             {product.catalog_type === "retail" ? (
               <div className="flex items-center gap-3 mb-4">

@@ -24,6 +24,8 @@ type Product = {
   catalog_type: string;
   moq: number | null;
   created_at: string;
+  is_bestseller: boolean;
+  order_count: number | null;
 };
 
 type Category = { id: string; name: string; slug: string };
@@ -218,6 +220,11 @@ const Shop = () => {
                             {discount(displayMrp, displayPrice)}% OFF
                           </span>
                         )}
+                        {p.is_bestseller && (
+                          <span className="absolute top-2 right-2 bg-primary text-primary-foreground text-xs font-bold px-2 py-1 rounded">
+                            ⭐ Best Seller
+                          </span>
+                        )}
                       </div>
                     </Link>
                     <div className="p-4">
@@ -225,6 +232,7 @@ const Shop = () => {
                         <h3 className="font-semibold text-sm mb-1 line-clamp-2 hover:text-secondary transition-colors">{p.name}</h3>
                       </Link>
                       {p.weight && <p className="text-xs text-muted-foreground mb-2">{p.weight}</p>}
+                      {p.order_count != null && <p className="text-xs font-medium text-secondary mb-2">{p.order_count}+ orders this month</p>}
                       {mode === "retail" ? (
                         <>
                           <div className="flex items-center gap-2 mb-3">

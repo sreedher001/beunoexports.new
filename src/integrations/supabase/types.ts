@@ -435,6 +435,8 @@ export type Database = {
           id: string
           image_url: string | null
           is_active: boolean
+          is_bestseller: boolean
+          order_count: number | null
           moq: number | null
           mrp: number
           name: string
@@ -454,6 +456,8 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_active?: boolean
+          is_bestseller?: boolean
+          order_count?: number | null
           moq?: number | null
           mrp?: number
           name: string
@@ -473,6 +477,8 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_active?: boolean
+          is_bestseller?: boolean
+          order_count?: number | null
           moq?: number | null
           mrp?: number
           name?: string
@@ -498,6 +504,8 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          is_bestseller: boolean
+          order_count: number | null
           label: string
           mrp: number
           price: number
@@ -510,6 +518,8 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          is_bestseller?: boolean
+          order_count?: number | null
           label: string
           mrp?: number
           price?: number
@@ -522,6 +532,8 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          is_bestseller?: boolean
+          order_count?: number | null
           label?: string
           mrp?: number
           price?: number
