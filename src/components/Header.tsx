@@ -1,9 +1,25 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCatalogMode } from "@/contexts/CatalogModeContext";
+import { useCart } from "@/hooks/useCart";
 import logo from "@/assets/logo.png";
 import { Menu, X, ShoppingCart, Heart, User, LogOut, Shield, Search } from "lucide-react";
+
+// Cart icon with an item-count badge that briefly pops/bounces whenever the
+// count goes up (e.g. right after an "Add to Cart" click anywhere on the site).
+const CartIcon = ({ count, justAdded, className = "" }: { count: number; justAdded: boolean; className?: string }) => (
+  <span className={`relative inline-flex ${className}`}>
+    <ShoppingCart className={`h-5 w-5 ${justAdded ? "animate-bounce" : ""}`} />
+    {count > 0 && (
+      <span
+        className={`absolute -top-2 -right-2 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-accent px-1 text-[10px] font-bold text-accent-foreground ${justAdded ? "animate-bounce" : ""}`}
+      >
+        {count > 99 ? "99+" : count}
+      </span>
+    )}
+  </span>
+);
 
 const SearchBox = ({ className = "", onSearch }: { className?: string; onSearch: () => void }) => {
   const navigate = useNavigate();
@@ -60,6 +76,20 @@ const Header = () => {
   const [open, setOpen] = useState(false);
   const location = useLocation();
   const { user, isAdmin, signOut } = useAuth();
+  const { items: cartItems } = useCart();
+  const cartCount = cartItems.reduce((sum, i) => sum + i.quantity, 0);
+
+  const [justAdded, setJustAdded] = useState(false);
+  const prevCartCount = useRef(cartCount);
+  useEffect(() => {
+    const prev = prevCartCount.current;
+    prevCartCount.current = cartCount;
+    if (cartCount > prev) {
+      setJustAdded(true);
+      const t = setTimeout(() => setJustAdded(false), 700);
+      return () => clearTimeout(t);
+    }
+  }, [cartCount]);
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-card/95 backdrop-blur-md">
@@ -90,8 +120,8 @@ const Header = () => {
           <Link to="/wishlist" aria-label="Wishlist" className="relative p-2 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground">
             <Heart className="h-5 w-5" />
           </Link>
-          <Link to="/cart" aria-label="Cart" className="relative p-2 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground">
-            <ShoppingCart className="h-5 w-5" />
+          <Link to="/cart" aria-label={`Cart${cartCount > 0 ? `, ${cartCount} item${cartCount === 1 ? "" : "s"}` : ""}`} className="relative p-2 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground">
+            <CartIcon count={cartCount} justAdded={justAdded} />
           </Link>
           {user ? (
             <div className="flex items-center gap-1 ml-2">
@@ -119,7 +149,9 @@ const Header = () => {
 
         {/* Mobile toggle */}
         <div className="flex items-center gap-1 shrink-0 lg:hidden">
-          <Link to="/cart" aria-label="Cart" className="p-2 text-foreground"><ShoppingCart className="h-5 w-5" /></Link>
+          <Link to="/cart" aria-label={`Cart${cartCount > 0 ? `, ${cartCount} item${cartCount === 1 ? "" : "s"}` : ""}`} className="p-2 text-foreground">
+            <CartIcon count={cartCount} justAdded={justAdded} />
+          </Link>
           <button onClick={() => setOpen(!open)} className="rounded-md p-2 text-foreground" aria-label="Toggle menu">
             {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>

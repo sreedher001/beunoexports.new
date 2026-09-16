@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CatalogModeProvider } from "@/contexts/CatalogModeContext";
+import { CartProvider } from "@/contexts/CartContext";
 import Layout from "@/components/Layout";
 import AdminLayout from "@/components/AdminLayout";
 import Index from "./pages/Index";
@@ -52,6 +53,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
         <CatalogModeProvider>
+        <CartProvider>
           <SEOHead />
           <Routes>
             {/* Admin routes - no Layout wrapper, code-split behind Suspense */}
@@ -85,6 +87,7 @@ const App = () => (
             <Route path="/legal/:page" element={<Layout><Legal /></Layout>} />
             <Route path="*" element={<Layout><NotFound /></Layout>} />
           </Routes>
+        </CartProvider>
         </CatalogModeProvider>
         </AuthProvider>
       </BrowserRouter>

@@ -1,7 +1,10 @@
-import { ReactNode } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { LayoutDashboard, Package, ShoppingCart, Users, Upload, Tag, ArrowLeft, Search, Mail } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { LayoutDashboard, Package, ShoppingCart, Users, Upload, Tag, ArrowLeft, Search, Mail, Bell } from "lucide-react";
+
+const PENDING_POLL_MS = 30000;
 
 const adminLinks = [
   { label: "Dashboard", to: "/admin", icon: LayoutDashboard },
@@ -18,6 +21,18 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
   const { isAdmin, loading } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const [pendingCount, setPendingCount] = useState(0);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    const fetchPending = () => {
+      supabase.from("orders").select("*", { count: "exact", head: true }).eq("status", "pending")
+        .then(({ count }) => setPendingCount(count || 0));
+    };
+    fetchPending();
+    const interval = setInterval(fetchPending, PENDING_POLL_MS);
+    return () => clearInterval(interval);
+  }, [isAdmin]);
 
   if (loading) return <div className="section-padding text-center text-muted-foreground">Loading...</div>;
   if (!isAdmin) return (
@@ -29,7 +44,20 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
   );
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)]">
+    <div>
+      <div className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-card px-4 py-2 md:px-8">
+        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Admin Panel</span>
+        <Link to="/admin/orders" aria-label={`Pending orders${pendingCount > 0 ? `, ${pendingCount} awaiting action` : ""}`}
+          className="relative rounded-md p-2 text-muted-foreground hover:bg-muted hover:text-foreground" title="Pending orders">
+          <Bell className="h-5 w-5" />
+          {pendingCount > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-destructive ring-2 ring-card">
+              <span className="sr-only">{pendingCount} pending orders</span>
+            </span>
+          )}
+        </Link>
+      </div>
+      <div className="flex min-h-[calc(100vh-4rem)]">
       <aside className="hidden md:flex w-60 flex-col border-r border-border bg-card p-4">
         <Link to="/" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6">
           <ArrowLeft className="h-4 w-4" /> Back to Store
@@ -66,6 +94,7 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
         </div>
       </div>
       <main className="flex-1 p-4 md:p-8 pb-20 md:pb-8 overflow-auto">{children}</main>
+      </div>
     </div>
   );
 };
