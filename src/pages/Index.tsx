@@ -12,6 +12,7 @@ import { ShieldCheck, Globe, Truck, Leaf, Star, Award, ShoppingBag, ShoppingCart
 type Product = {
   id: string; name: string; slug: string; price: number; mrp: number;
   image_url: string | null; weight: string | null; unit: string; moq: number | null; stock: number;
+  is_bestseller: boolean; order_count: number | null;
 };
 
 type Category = { id: string; name: string; slug: string };
@@ -39,7 +40,7 @@ const Index = () => {
   const { wishlistIds, toggle: toggleWishlist } = useWishlist();
 
   useEffect(() => {
-    supabase.from("products").select("id,name,slug,price,mrp,image_url,weight,unit,moq,stock")
+    supabase.from("products").select("id,name,slug,price,mrp,image_url,weight,unit,moq,stock,is_bestseller,order_count")
       .eq("is_active", true).eq("catalog_type", mode).limit(8)
       .then(async ({ data }) => {
         setProducts(data || []);
@@ -143,10 +144,16 @@ const Index = () => {
                             {disc(displayMrp, displayPrice)}% OFF
                           </span>
                         )}
+                        {p.is_bestseller && (
+                          <span className="absolute top-2 right-2 bg-primary text-primary-foreground text-xs font-bold px-2 py-1 rounded flex items-center gap-1">
+                            ⭐ Best Seller
+                          </span>
+                        )}
                       </div>
                       <div className="p-4 pb-0">
                         <h3 className="font-semibold text-sm mb-1">{p.name}</h3>
                         {p.weight && <p className="text-xs text-muted-foreground mb-2">{p.weight}</p>}
+                        {p.order_count != null && <p className="text-xs font-medium text-secondary mb-2">{p.order_count}+ orders this month</p>}
                       </div>
                     </Link>
                     <div className="p-4 pt-2">
