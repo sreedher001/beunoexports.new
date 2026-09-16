@@ -243,7 +243,7 @@ const Checkout = () => {
       body: { type: "INSERT", table: "orders", record: { order_number: order.order_number, total_amount: order.total_amount, email: form.email, status: "pending" } },
     }).catch(() => {});
 
-    toast.success("Order placed successfully! Check your email for confirmation.");
+    toast.success("Order placed successfully!");
     // No router state is passed — OrderConfirmation re-fetches the order fresh
     // from the DB (by RLS for logged-in users, by guest token otherwise), so it
     // always shows the authoritative, server-computed totals.
