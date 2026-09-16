@@ -36,6 +36,7 @@ const AdminProducts = lazy(() => import("./pages/admin/AdminProducts"));
 const AdminOrders = lazy(() => import("./pages/admin/AdminOrders"));
 const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
 const AdminCoupons = lazy(() => import("./pages/admin/AdminCoupons"));
+const AdminBanners = lazy(() => import("./pages/admin/AdminBanners"));
 const AdminMessages = lazy(() => import("./pages/admin/AdminMessages"));
 const BulkUpload = lazy(() => import("./pages/admin/BulkUpload"));
 const AdminSeo = lazy(() => import("./pages/admin/AdminSeo"));
@@ -62,6 +63,7 @@ const App = () => (
             <Route path="/admin/orders" element={<Suspense fallback={<AdminFallback />}><AdminLayout><AdminOrders /></AdminLayout></Suspense>} />
             <Route path="/admin/users" element={<Suspense fallback={<AdminFallback />}><AdminLayout><AdminUsers /></AdminLayout></Suspense>} />
             <Route path="/admin/coupons" element={<Suspense fallback={<AdminFallback />}><AdminLayout><AdminCoupons /></AdminLayout></Suspense>} />
+            <Route path="/admin/banners" element={<Suspense fallback={<AdminFallback />}><AdminLayout><AdminBanners /></AdminLayout></Suspense>} />
             <Route path="/admin/messages" element={<Suspense fallback={<AdminFallback />}><AdminLayout><AdminMessages /></AdminLayout></Suspense>} />
             <Route path="/admin/bulk-upload" element={<Suspense fallback={<AdminFallback />}><AdminLayout><BulkUpload /></AdminLayout></Suspense>} />
             <Route path="/admin/seo" element={<Suspense fallback={<AdminFallback />}><AdminLayout><AdminSeo /></AdminLayout></Suspense>} />
