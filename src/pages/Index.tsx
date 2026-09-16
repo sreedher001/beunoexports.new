@@ -17,6 +17,30 @@ type Product = {
 
 type Category = { id: string; name: string; slug: string };
 
+type BannerContent = { image_url: string | null; title: string; subtitle: string; cta_text: string; cta_link: string };
+
+const defaultBanners: Record<"retail" | "wholesale", BannerContent> = {
+  retail: {
+    image_url: null,
+    title: "Premium Indian Spices Delivered to Your Doorstep",
+    subtitle: "Fresh, authentic spices straight from Indian farms. Shop now and taste the difference.",
+    cta_text: "Shop Now", cta_link: "/shop",
+  },
+  wholesale: {
+    image_url: null,
+    title: "Bulk & Wholesale Spice Supply",
+    subtitle: "Premium quality spices at competitive wholesale prices for exporters, retailers & food businesses.",
+    cta_text: "Get Bulk Pricing", cta_link: "/contact",
+  },
+};
+
+type BannerSettingsRow = {
+  banner_retail_image_url: string | null; banner_retail_title: string | null; banner_retail_subtitle: string | null;
+  banner_retail_cta_text: string | null; banner_retail_cta_link: string | null;
+  banner_wholesale_image_url: string | null; banner_wholesale_title: string | null; banner_wholesale_subtitle: string | null;
+  banner_wholesale_cta_text: string | null; banner_wholesale_cta_link: string | null;
+};
+
 const whyUs = [
   { icon: ShieldCheck, title: "Certified Quality", desc: "FSSAI, ISO & export-grade standards" },
   { icon: Globe, title: "Pan India Delivery", desc: "Fast delivery across all states" },
@@ -38,6 +62,21 @@ const Index = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [variantInfo, setVariantInfo] = useState<Record<string, { minPrice: number; minMrp: number }>>({});
   const { wishlistIds, toggle: toggleWishlist } = useWishlist();
+  const [bannerSettings, setBannerSettings] = useState<BannerSettingsRow | null>(null);
+
+  useEffect(() => {
+    supabase.from("site_settings")
+      .select("banner_retail_image_url,banner_retail_title,banner_retail_subtitle,banner_retail_cta_text,banner_retail_cta_link,banner_wholesale_image_url,banner_wholesale_title,banner_wholesale_subtitle,banner_wholesale_cta_text,banner_wholesale_cta_link")
+      .eq("id", true).single().then(({ data }) => setBannerSettings(data));
+  }, []);
+
+  const banner: BannerContent = {
+    image_url: bannerSettings?.[`banner_${mode}_image_url`] || defaultBanners[mode].image_url,
+    title: bannerSettings?.[`banner_${mode}_title`] || defaultBanners[mode].title,
+    subtitle: bannerSettings?.[`banner_${mode}_subtitle`] || defaultBanners[mode].subtitle,
+    cta_text: bannerSettings?.[`banner_${mode}_cta_text`] || defaultBanners[mode].cta_text,
+    cta_link: bannerSettings?.[`banner_${mode}_cta_link`] || defaultBanners[mode].cta_link,
+  };
 
   useEffect(() => {
     supabase.from("products").select("id,name,slug,price,mrp,image_url,weight,unit,moq,stock,is_bestseller,order_count")
@@ -74,21 +113,21 @@ const Index = () => {
       {/* Hero */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0">
-          <img src={heroImg} alt="Premium Indian spices" className="h-full w-full object-cover" loading="eager" />
+          <img src={banner.image_url || heroImg} alt={banner.title} className="h-full w-full object-cover" loading="eager" />
           <div className="absolute inset-0 bg-primary/75" />
         </div>
         <div className="relative container mx-auto px-4 py-24 md:py-36 lg:py-44 lg:px-8">
           <div className="max-w-2xl">
             <h1 className="text-primary-foreground text-balance mb-6 animate-fade-up" style={{ lineHeight: 1.1 }}>
-              Premium Indian Spices Delivered to Your Doorstep
+              {banner.title}
             </h1>
             <p className="text-lg md:text-xl text-primary-foreground/85 mb-8 max-w-lg animate-fade-up" style={{ animationDelay: "100ms" }}>
-              Fresh, authentic spices straight from Indian farms. Shop now and taste the difference.
+              {banner.subtitle}
             </p>
             <div className="flex flex-wrap gap-4 animate-fade-up" style={{ animationDelay: "200ms" }}>
-              <Link to="/shop"
+              <Link to={banner.cta_link}
                 className="inline-flex items-center gap-2 rounded-lg bg-secondary px-6 py-3 text-sm font-bold text-secondary-foreground shadow-lg transition-all hover:shadow-xl active:scale-[0.97]">
-                <ShoppingBag className="h-4 w-4" /> Shop Now
+                <ShoppingBag className="h-4 w-4" /> {banner.cta_text}
               </Link>
               <Link to="/contact"
                 className="inline-flex items-center rounded-lg border-2 border-primary-foreground/30 px-6 py-3 text-sm font-bold text-primary-foreground transition-all hover:bg-primary-foreground/10 active:scale-[0.97]">

@@ -2,7 +2,7 @@ import { ReactNode, useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { LayoutDashboard, Package, ShoppingCart, Users, Upload, Tag, ArrowLeft, Search, Mail, Bell } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, Users, Upload, Tag, ArrowLeft, Search, Mail, Bell, Image } from "lucide-react";
 
 const PENDING_POLL_MS = 30000;
 
@@ -12,6 +12,7 @@ const adminLinks = [
   { label: "Orders", to: "/admin/orders", icon: ShoppingCart },
   { label: "Users", to: "/admin/users", icon: Users },
   { label: "Coupons", to: "/admin/coupons", icon: Tag },
+  { label: "Banners", to: "/admin/banners", icon: Image },
   { label: "Messages", to: "/admin/messages", icon: Mail },
   { label: "Bulk Upload", to: "/admin/bulk-upload", icon: Upload },
   { label: "SEO", to: "/admin/seo", icon: Search },
